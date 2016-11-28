@@ -59,6 +59,10 @@ urlpatterns = patterns('',
         include('sell.urls')
     ),
     url(
+        r'^quality/',
+        include('quality.urls')
+    ),
+    url(
         r'^errors/',
         include("backend.urls")
     ),

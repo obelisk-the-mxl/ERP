@@ -146,6 +146,7 @@ INSTALLED_APPS = (
     'storage',
     'techdata',
     'sell',
+    'quality',
     #Add-on
     'dajaxice',
     'dajax',
@@ -203,6 +204,7 @@ LOGGING = {
 
 PROCESS_FILE_PATH = join("tmp", "process_file")
 SELL_BIDFILE_PATH = join("tmp", "bid_file")
+QUALITY_FILE_PATH = join("tmp", "quality_file")
 FILE_UPLOAD_PERMISSIONS = 0644
 FILE_UPLOAD_TEMP_DIR = os.path.join(SETTINGS_ROOT, PROCESS_FILE_PATH).replace("\\",'/')
 FILE_UPLOAD_HANDLERS = ('django.core.files.uploadhandler.MemoryFileUploadHandler',

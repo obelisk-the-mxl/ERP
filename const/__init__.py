@@ -805,3 +805,38 @@ SYNSIZE_FILE_LIST_STATUS = [
 
 ]
 
+IMATERIEL = 0
+IPROCESS = 1
+IFEEDING = 2
+IBARREL = 3
+IASSEMBLE = 4
+IPRESSURE = 5
+IFACADE = 6
+
+INSPECT_CATEGORY_CHOICE = (
+    (IMATERIEL, u"材料检验"),
+    (IPROCESS, u"工序检验"),
+    (IFEEDING, u"零件投料检验"),
+    (IBARREL, u"封头/筒体检验"),
+    (IASSEMBLE, u"装配检验"),
+    (IPRESSURE, u"压力试验"),
+    (IFACADE, u"外观检验"),
+)
+
+UnCheck=0
+CheckPass=1
+CheckUnPass=2
+FINISHED=3
+QA_STATUS=(
+    (UnCheck, u'未检验'),
+    (CheckPass, u'检验通过'),
+    (CheckUnPass, u'检验为通过'),
+    (FINISHED, u"已完成")
+)
+
+UNDILIVER=0
+DILIVER=1
+DILIVER_STATUS=(
+    (UNDILIVER, u'未交货'),
+    (DILIVER, u'交货')
+)
