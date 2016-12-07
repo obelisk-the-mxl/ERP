@@ -9,11 +9,11 @@ from dajaxice.utils import deserialize_form
 from django.template.loader import render_to_string
 from django.utils import simplejson
 
-from const import *
  
 from iface.inspectIface import InspectIface
 
-from models import InspectReport
+from .models import InspectReport
+from const import *
 from forms import *
 
 
@@ -37,6 +37,12 @@ def getInspect(request, cate):
         "reports" : reports,
     }
     return render_to_string("quality/%s.html" % cate, context)
+
+
+@dajaxice_register
+def getMaterielReportTable(request, id_work_order):
+    cate = "IMATERIEL"
+    catrgory = inspect_dict.get(cate, 0)
 
 
 @dajaxice_register
@@ -79,11 +85,6 @@ def updateMaterielItem(request, item_id, inspect_item_form, materiel_form):
     except Exception, e:
         print e
 
-    
-
-@dajaxice_register
-def addMaterielItem(request, item_form):
-    pass
 
 @dajaxice_register
 def getFeedingItemsTable(request, id_work_order):

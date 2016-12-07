@@ -10,7 +10,7 @@ _PYRPC_DIR = os.path.join(_CUR_DIR, "..", "..")
 sys.path.append(_PYRPC_DIR)
 
 from pyrpc.thrift_gen.inspect.ttypes import *
-from pyrpc.thrift_gem.inspect.constants import *
+from pyrpc.thrift_gen.inspect.constants import *
 from pyrpc.service.inspect import InspectServiceBase
 
 class InspectService(InspectServiceBase):

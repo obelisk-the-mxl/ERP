@@ -1,0 +1,56 @@
+{% extends "quality/base/none_nav_base.html" %}
+
+{% block title%}
+<h1>零件先投料检验</h1>
+{% endblock %}
+
+{% block sub_ref %}
+<a href="/quality/feedInspect" class="tip-bottom" data-original-title="零件检验">零件检验</a-->
+<a href="#" class="current">零件先投料检验</a>
+{% endblock %}
+
+{% block inner_content %}
+<div id="div_report" id_work_order="{{work_order.id}}"></div>
+<form>
+    <div class="well">
+        {% include "quality/widgets/report/inspect_report.html" %}
+        {% include "quality/widgets/report/materiel_report.html" %}
+        {% include "quality/widgets/report_edit_btn.html" %}
+    </div>
+</form>
+
+<br/>
+<br/>
+
+{% include "quality/tables/items/materiel_items_table.html" %}
+
+<div class="modal fade" id="materiel_report_modal" modal-size-width="0.8">
+    <div class="modal-header">
+        <h2>物料检验报告单</h2>
+    </div>
+    <div class="modal-body">
+        {% include "quality/forms/reports/inspect_report_form.html" %}
+        {% include "quality/forms/reports/materiel_report_form.html" %}
+    </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal" id="cancel_report_change">关闭</button>
+        <button type="button" class="btn btn-primary" data-dismiss="modal" id="save_report_form">保存</button>
+      </div>
+</div>
+
+<div class="modal fade" id="materiel_item_modal" modal-size-width="0.8">
+    <div class="modal-header">
+        <h2>物料检验项</h2>
+    </div>
+    <div class="modal-body">
+        {% include "quality/forms/items/materiel_item_form.html" %}
+    </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal" id="cancel_item_change">关闭</button>
+        <button type="button" class="btn btn-primary" data-dismiss="modal" id="save_item_form">保存</button>
+      </div>
+</div>
+
+<script type='text/javascript' src="{{ STATIC_URL  }}jquery/jquery.form.js"></script>
+<script type='text/javascript' src="{{STATIC_URL}}js/quality/materielItems.js"></script>
+{% endblock %}

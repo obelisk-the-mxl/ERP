@@ -7,15 +7,20 @@
                 <th class="fix_th" rowspan="1" style="vertical-align: middle">检验单类型</th>
                 <th class="fix_th" rowspan="1" style="vertical-align: middle">编号</th>
                 <th class="fix_th" rowspan="1" style="vertical-align: middle">订货合同号</th>
+                <th class="fix_th" rowspan="1" style="vertical-align: middle">查看详情</th>
             </tr>
         </thead>
         <tbody>
-            {% for item in list %}
-            <tr iid="{{item.id}}" class="tr_materiel">
-                <td>{{forloop.counter}}</td>
-                {% include "techdata/widgets/auxiliary_material_row.html" %}
-            </tr>   
-            {% endfor %}
+            <tr iid="" class="tr_materiel">
+                <td>1</td>
+                <td>03015007B</td>
+                <td>材料A</td>
+                <td>RJ0801</td>
+                <td>20140101</td>
+                <td>
+                    <a class="btn btn-success"  href="/quality/materiel_detail/030175B">详细</a>
+                </td>
+            </tr> 
         </tbody>
     </table>
 </div>

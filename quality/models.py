@@ -1,9 +1,12 @@
+# coding: UTF-8
 from django.db import models
 
-from const.models import WorkOrder
 from django.contrib.auth.models import User
 
-from const import *
+from const import UnCheck, QA_STATUS, DILIVER_STATUS, UNDILIVER, REVIEW_COMMENTS_CHOICES
+from const.models import WorkOrder
+
+import settings
 
 # Create your models here.
 class InspectCategory(models.Model):
@@ -95,7 +98,7 @@ class FeedingReport(models.Model):
     base = models.OneToOneField(InspectReport, verbose_name=u'报告单Base')
     schematic_index = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"产品图号")
     product_name = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"产品名称")
-    container_cate = models.CharField(blan=True, null=True, max_length=50, verbose_name=u"容器类别")
+    container_cate = models.CharField(blank=True, null=True, max_length=50, verbose_name=u"容器类别")
 
     class Meta:
         verbose_name=u"零件投料报告"
@@ -126,7 +129,7 @@ class FeedingInspectItem(models.Model):
 
 class BarrelReport(models.Model):
     base = models.OneToOneField(InspectReport, verbose_name=u'报告项Base')
-    container_cate = models.CharField(blan=True, null=True, max_length=50, verbose_name=u"容器类别")
+    container_cate = models.CharField(blank=True, null=True, max_length=50, verbose_name=u"容器类别")
     part_name = models.CharField(blank=True, null=True, max_length=50, verbose_name=u"零件名称")
     product_name = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"产品名称")
     texture = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"材质")
@@ -157,7 +160,7 @@ class BarrelInspectItem(models.Model):
 class AssembleReport(models.Model):
     base = models.OneToOneField(InspectReport, verbose_name=u'报告项Base')
     schematic_index = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"产品图号")
-    container_cate = models.CharField(blan=True, null=True, max_length=50, verbose_name=u"容器类别")
+    container_cate = models.CharField(blank=True, null=True, max_length=50, verbose_name=u"容器类别")
 
     class Meta:
         verbose_name=u"装配检验报告"
@@ -187,8 +190,8 @@ class PressureReport(models.Model):
     media = models.CharField(max_length=50, verbose_name=u"试压介质")
     stipulate_media = models.FloatField(verbose_name=u"要求介质温度")
     real_media = models.FloatField(verbose_name=u"实际介质温度")
-    stipulate_env_ = models.FloatField(verbose_name=u"要求环境温度")
-    real_env_ = models.FloatField(verbose_name=u"实际环境温度")
+    stipulate_env = models.FloatField(verbose_name=u"要求环境温度")
+    real_env = models.FloatField(verbose_name=u"实际环境温度")
     stipulate_curve = models.FileField(null=True, blank=True, upload_to=settings.QUALITY_FILE_PATH + "/%Y/%m/%d", verbose_name=u"要求压力试验曲线")
     real_curve = models.FileField(null=True, blank=True, upload_to=settings.QUALITY_FILE_PATH + "/%Y/%m/%d", verbose_name=u"实际压力试验曲线")
 
@@ -238,32 +241,6 @@ class FacadeInspectItem(models.Model):
 
     def __unicode__(self):
         return "%s" % self.base
-
-#class HeatTreatmentReport(models.Model):
-#    base = models.OneToOneField(InspectReport, verbose_name=u'报告单Base')
-#    product_no = models.CharField(max_length=20, blank=True, null=True, verbose_name=u"产品编号")
-#    position = models.CharField(max_length=50, blank=True, null=True, verbose_name=u"部位")
-#    schematic_index = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"部件图号")
-#    treat_method = models.CharField(max_length=50, blank=True, null=True, verbose_name=u"热处理方式")
-#
-#    class Meta:
-#        verbose_name=u"热处理检验"
-#        verbose_name_plural=u"热处理检验"
-#
-#    def __unicode__(self):
-#        return "%s" % self.base
-#
-#class HeatTreatmentInspectItem(models.Model):
-#    base = models.OneToOneField(InspectReport, verbose_name=u'报告项Base')
-#
-#
-#    class Meta:
-#        verbose_name=u"热处理检验项"
-#        verbose_name_plural=u"热处理检验项"
-#
-#    def __unicode__(self):
-#        return "%s" % self.base
-
 
 class FinalInspect(models.Model):
     work_order = models.ForeignKey(WorkOrder, verbose_name=u"所属工作令")

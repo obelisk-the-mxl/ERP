@@ -3,7 +3,17 @@
 
 from django import forms
 
-from models import InspectItem, MaterielInspectItem 
+from models import InspectItem, MaterielInspectItem, InspectReport, MaterielReport
+
+class InspectReportForm(forms.ModelForm):
+    class Meta:
+        model = InspectReport
+        exclude = {"id", "category", "extra"}
+        widgets = {
+            "work_order": forms.TextInput(attrs={"class": "input-medium", "readonly": "readonly"}),
+            "checkstatus": forms.Select(attrs={"class": "input-medium"}),
+            "conclusion": forms.TextInput(attrs={"class": "input-medium"}),
+        }
 
 class InspectItemForm(forms.ModelForm):
     class Meta:
@@ -29,3 +39,15 @@ class MaterielItemForm(forms.ModelForm):
             "certification" : forms.TextInput(attrs = {"class" : "input-medium"})
         }
 
+class MaterielReportForm(forms.ModelForm):
+    class Meta:
+        model = MaterielReport
+        exclude = {"id", "base"}
+        widgets ={
+            "contact_number": forms.TextInput(attrs={"class": "input-medium"}),
+            "index": forms.TextInput(attrs={"class": "input-medium"}),
+            "manufactory": forms.TextInput(attrs={"class": "input-medium"}),
+            "sell": forms.TextInput(attrs={"class": "input-medium"}),
+            "code_mark": forms.TextInput(attrs={"class": "input-medium"}),
+            "type": forms.TextInput(attrs={"class": "input-medium"})
+        }

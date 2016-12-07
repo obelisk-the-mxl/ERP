@@ -7,11 +7,15 @@ from quality import views as quality_views
 urlpatterns=patterns(
     '',
     url(
-        r'materielReport',
-        quality_views.materielReportViews,
+        r'^materiel/$',
+        quality_views.materielViews,
     ),
     url(
-        r'^feeding$',
+        r'^materiel_detail/(\w+)/$',
+        quality_views.materielDetailViews,
+    ),
+    url(
+        r'^feeding/$',
         quality_views.feedingViews,
     ),
 )

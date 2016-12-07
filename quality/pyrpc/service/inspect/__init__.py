@@ -10,7 +10,7 @@ _PYRPC_DIR = os.path.join(_CUR_DIR, "..", "..", "..")
 sys.path.append(_PYRPC_DIR)
 
 from pyrpc.client import ThriftClient
-from pyrpc.thrift_gen.inspect.InspectService import InspectService
+from pyrpc.thrift_gen.inspect import InspectService
 
 class InspectServiceBase(object):
     def __init__(self, **kwargs):
