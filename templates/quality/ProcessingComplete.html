@@ -1,0 +1,27 @@
+{% extends "quality/base/none_nav_base.html" %}
+
+{% block title%}
+<h1>工序检验</h1>
+{% endblock %}
+
+{% block sub_ref %}
+<a href="/quality/processing" class="tip-bottom" data-original-title="零件检验">工序检验</a-->
+<a href="#" class="current">工序完成情况</a>
+{% endblock %}
+
+{% block inner_content %}
+<form class="form-search">
+    工作令：
+    <span id="order_span">03015007B-1</span>
+</form>
+<br/>
+<div>
+    <form>
+        <div class="well" id="progress_div">
+            {% include "quality/widgets/processing_complete_table.html" %}
+        </div>
+    </form>
+</div>
+<script type='text/javascript' src="{{ STATIC_URL  }}jquery/jquery.form.js"></script>
+<script type='text/javascript' src="{{STATIC_URL}}js/quality/processingComplete.js"></script>
+{% endblock %}

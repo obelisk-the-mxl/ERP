@@ -15,6 +15,14 @@ urlpatterns=patterns(
         quality_views.materielDetailViews,
     ),
     url(
+        r'^processing/$',
+        quality_views.processingViews,
+    ),
+    url(
+        r'^processing_complete/(\w+)/$',
+        quality_views.processingCompleteViews,
+    ),
+    url(
         r'^feeding/$',
         quality_views.feedingViews,
     ),

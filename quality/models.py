@@ -4,7 +4,8 @@ from django.db import models
 from django.contrib.auth.models import User
 
 from const import UnCheck, QA_STATUS, DILIVER_STATUS, UNDILIVER, REVIEW_COMMENTS_CHOICES
-from const.models import WorkOrder
+from const.models import WorkOrder, SubWorkOrder
+from production.models import ProcessDetail
 
 import settings
 
@@ -17,7 +18,7 @@ class InspectCategory(models.Model):
         verbose_name_plural = u'检验类别'
 
     def __unicode__(self):
-        return "%s" % self.name
+        return u"%s" % self.name
 
 class InspectReport(models.Model):
     work_order = models.ForeignKey(WorkOrder,blank=False, null=False, verbose_name=u'检验报告')
@@ -33,7 +34,7 @@ class InspectReport(models.Model):
         verbose_name_plural=u'检验报告单'
 
     def __unicode__(self):
-        return "%s%s" % (self.category, self.work_order)
+        return u"%s%s" % (self.category, self.work_order)
 
 class InspectItem(models.Model):
     index = models.IntegerField(blank=False, null=False, verbose_name=u'检验序号')
@@ -48,7 +49,7 @@ class InspectItem(models.Model):
         verbose_name_plural = u'检验项'
 
     def __unicode__(self):
-        return "%s%s" % (self.report, self.index)
+        return u"%s%s" % (self.report, self.index)
 
 class MaterielReport(models.Model):
     base = models.OneToOneField(InspectReport, verbose_name=u'报告单Base')
@@ -64,7 +65,7 @@ class MaterielReport(models.Model):
         verbose_name_plural=u'材料检验报告'
 
     def __unicode__(self):
-        return "%s" % self.base
+        return u"%s" % self.base
 
 class MaterielInspectItem(models.Model):
     base_item = models.OneToOneField(InspectItem, verbose_name=u'检验项Base')
@@ -80,35 +81,49 @@ class MaterielInspectItem(models.Model):
         verbose_name_plural=u'材料检验项'
 
     def __unicode__(self):
-        return "%s" % self.base
+        return u"%s" % self.base_item
+    
+class ProcessReport(models.Model):
+    base = models.OneToOneField(InspectReport, verbose_name=u"报告单")
+    sub_work_order = models.ForeignKey(SubWorkOrder, verbose_name=u"子工作令")
+
+    class Meta:
+        verbose_name=u"工序检验报告单"
+        verbose_name_plural=u"工序检验报告单"
+
+    def __unicode__(self):
+        return u"%s" % self.base
 
 class ProcessInspectItem(models.Model):
-    base = models.OneToOneField(InspectItem, verbose_name=u'报告项Base')
-    process_index = models.IntegerField(verbose_name=u'工序序号')
-    process_code = models.CharField(max_length=20, verbose_name=u'工序代号')
+    base_item = models.OneToOneField(InspectItem, verbose_name=u'报告项Base')
+    #process_index = models.IntegerField(verbose_name=u'工序序号')
+    #process_code = models.CharField(max_length=20, verbose_name=u'工序代号')
+    process_detail = models.OneToOneField(ProcessDetail, verbose_name=u"工序详细")
+    add_to_unpass = models.BooleanField(default=False, verbose_name=u"是否加入未通过")
 
     class Meta:
         verbose_name=u'工序检验项'
         verbose_name_plural=u'工序检验项'
 
     def __unicode__(self):
-        return "%s" % self.base
+        return u"%s" % self.base_item
 
 class FeedingReport(models.Model):
     base = models.OneToOneField(InspectReport, verbose_name=u'报告单Base')
+    sub_work_order = models.ForeignKey(SubWorkOrder, verbose_name=u"子工作令")
     schematic_index = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"产品图号")
     product_name = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"产品名称")
-    container_cate = models.CharField(blank=True, null=True, max_length=50, verbose_name=u"容器类别")
+    container_type = models.CharField(blank=True, null=True, max_length=50, verbose_name=u"容器类别")
 
     class Meta:
         verbose_name=u"零件投料报告"
         verbose_name_plural=u"零件投料报告"
 
     def __unicode__(self):
-        return "%s" % self.base
+        return u"%s" % self.base
 
 class FeedingInspectItem(models.Model):
-    base = models.OneToOneField(InspectReport, verbose_name=u'报告项Base')
+    base_item = models.OneToOneField(InspectReport, verbose_name=u'报告项Base')
     part_schematic_index = models.CharField(blank=True, null=True, max_length=50, verbose_name=u"零件图号")
     part_name = models.CharField(blank=True, null=True, max_length=50, verbose_name=u"零件名称")
     draw_texture = models.CharField(blank=True, null=True, max_length=50, verbose_name=u"图纸材质")
@@ -125,7 +140,7 @@ class FeedingInspectItem(models.Model):
         verbose_name_plural=u"零件投料项"
 
     def __unicode__(self):
-        return "%s" % base
+        return u"%s" % base_item
 
 class BarrelReport(models.Model):
     base = models.OneToOneField(InspectReport, verbose_name=u'报告项Base')
@@ -141,9 +156,10 @@ class BarrelReport(models.Model):
         verbose_name_plural=u"封头/筒体检验"
 
     def __unicode__(self):
-        return "%s" % self.base
+        return u"%s" % self.base
 
 class BarrelInspectItem(models.Model):
+    base_item = models.OneToOneField(InspectReport, verbose_name=u'报告项Base')
     process_index = models.CharField(max_length = 50, verbose_name = u"工序")
     check_item = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"检验项目")
     stipulate = models.FloatField(blank = True, null = True, verbose_name = u"规定值")
@@ -155,7 +171,7 @@ class BarrelInspectItem(models.Model):
         verbose_name_plural=u"封头/筒体检验项"
 
     def __unicode__(self):
-        return "%s" % self.base
+        return u"%s" % self.base_item
 
 class AssembleReport(models.Model):
     base = models.OneToOneField(InspectReport, verbose_name=u'报告项Base')
@@ -167,10 +183,10 @@ class AssembleReport(models.Model):
         verbose_name_plural=u"装配检验报告"
 
     def __unicode__(self):
-        return "%s" % base
+        return u"%s" % base
 
 class AssembleInspectItem(models.Model):
-    base = models.OneToOneField(InspectReport, verbose_name=u'报告项Base')
+    base_item = models.OneToOneField(InspectReport, verbose_name=u'报告项Base')
     check_item = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"检验项目")
     stipulate = models.FloatField(blank = True, null = True, verbose_name = u"规定值")
     real = models.FloatField(blank = True, null = True, verbose_name = u"实际值")
@@ -180,7 +196,7 @@ class AssembleInspectItem(models.Model):
         verbose_name_plural=u"装配检验项"
 
     def __unicode__(self):
-        return "%s" % self.base
+        return u"%s" % self.base
 
 class PressureReport(models.Model):
     base = models.OneToOneField(InspectReport, verbose_name=u'报告项Base')
@@ -200,10 +216,10 @@ class PressureReport(models.Model):
         verbose_name_plural=u"压力试验报告"
 
     def __unicode__(self):
-        return "%s" % base
+        return u"%s" % base
 
 class PressureInspectItem(models.Model):
-    base = models.OneToOneField(InspectReport, verbose_name=u'报告项Base')
+    base_item = models.OneToOneField(InspectReport, verbose_name=u'报告项Base')
     no = models.CharField(max_length=20, verbose_name=u"编号")
     range = models.FloatField(verbose_name=u"量程")
     diameter = models.FloatField(verbose_name=u"表盘直径")
@@ -215,7 +231,7 @@ class PressureInspectItem(models.Model):
         verbose_name_plural=u"压力试验项"
 
     def __unicode__(self):
-        return "%s" % self.base
+        return u"%s" % self.base_item
 
 class FacadeReport(models.Model):
     base = models.OneToOneField(InspectReport, verbose_name=u'报告单Base')
@@ -227,10 +243,10 @@ class FacadeReport(models.Model):
         verbose_name_plural=u"外观检验"
 
     def __unicode__(self):
-        return "%s" % self.base
+        return u"%s" % self.base
 
 class FacadeInspectItem(models.Model):
-    base = models.OneToOneField(InspectReport, verbose_name=u'报告项Base')
+    base_item = models.OneToOneField(InspectReport, verbose_name=u'报告项Base')
     check_item = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"检验项目")
     stipulate = models.FloatField(blank = True, null = True, verbose_name = u"规定值")
     real = models.FloatField(blank = True, null = True, verbose_name = u"实际值")
@@ -240,7 +256,7 @@ class FacadeInspectItem(models.Model):
         verbose_name_plural=u"外观检验项"
 
     def __unicode__(self):
-        return "%s" % self.base
+        return u"%s" % self.base_item
 
 class FinalInspect(models.Model):
     work_order = models.ForeignKey(WorkOrder, verbose_name=u"所属工作令")
@@ -252,28 +268,69 @@ class FinalInspect(models.Model):
         verbose_name_plural=u"最终审核"
 
     def __unicode__(self):
-        return "%s" % self.work_order
+        return u"%s" % self.work_order
 
-class UnQuilityGoods(models.Model):
-    work_order = models.ForeignKey(WorkOrder, verbose_name=u"所属工作令")
-    weight = models.FloatField(blank=True, null=True, verbose_name=u"单重")
-    total_count = models.IntegerField(blank=True, null=True, verbose_name=u"交检数")
-    no = models.CharField(max_length=50, blank=True, null=True, verbose_name=u"本单号")
-    schematic_index = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"图号")
-    process_index = models.CharField(max_length = 50, blank=True, null=True, verbose_name = u"工序")
-    unquality_count = models.IntegerField(blank=True, null=True, verbose_name=u"不合格数")
-    operator = models.ForeignKey(User, verbose_name=u"操作者")
-    name = models.CharField(max_length=100, null=True, blank=True, verbose_name=u"名称")
+class UnPassBill(models.Model):
+    #work_order = models.ForeignKey(WorkOrder, verbose_name=u"所属工作令")
+    process_detail = models.ForeignKey(ProcessDetail, verbose_name=u"所属工序")
     texture = models.CharField(max_length=100, null=True, blank=True, verbose_name=u"材质")
+    weight = models.FloatField(blank=True, null=True, verbose_name=u"单重")
+    schematic_index = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"图号")
+    processname = models.CharField(max_length = 50, blank=True, null=True, verbose_name = u"工序")
+    total_count = models.IntegerField(blank=True, null=True, verbose_name=u"交检数")
+    name = models.CharField(max_length=100, null=True, blank=True, verbose_name=u"名称")
+    operator = models.ForeignKey(User, verbose_name=u"操作者")
+    reason = models.TextField(max_length=1000, null=True, blank=True, verbose_name=u"原因")
 
-    reason = models.TextField(max_length=1000, null=True, blank=True, verbose_name=u"不合格情况及原因")
-    tech_opinion = models.TextField(max_length=1000, null=True, blank=True, verbose_name=u"工艺科意见")
-    design_opinion = models.TextField(max_length=1000, null=True, blank=True, verbose_name=u"设计所意见")
-    manager_opinion = models.TextField(max_length=1000, null=True, blank=True, verbose_name=u"技术负责人意见")
+    class Meta:
+        verbose_name=u"不合格单"
+        verbose_name_plural=u"不合格单"
+
+    def __unicode__(self):
+        return u"%s-%s" % (self.work_order, self.no)
+
+class SignatureSheet(models.Model):
+    bill = models.ForeignKey(UnPassBill, verbose_name=u"不合格单")
+    text = models.CharField(max_length=50, verbose_name=u"签字文本")
+    signer = models.ForeignKey(User, verbose_name=u"签字者")
+    sign_date = models.DateField(verbose_name=u"日期")
+    opinion = models.TextField(max_length=1000, null=True, blank=True, verbose_name=u"意见")
+    
+    class Meta:
+        verbose_name=u"签字单"
+        verbose_name_plural=u"签字单"
+
+    def __unicode__(self):
+        return u"%s:%s" % (self.bill, self.text)
+
+class UnQualityGoodsBill(UnPassBill):
+    unquality_count = models.IntegerField(blank=True, null=True, verbose_name=u"不合格数")
+    no = models.CharField(max_length=50, blank=True, null=True, verbose_name=u"本单号")
 
     class Meta:
         verbose_name=u"不合格品处理单"
         verbose_name_plural=u"不合格品处理单"
 
     def __unicode__(self):
-        return "%s" % self.work_order
+        return u"%s-%s" % (self.work_order, self.no)
+
+class RepairBill(UnPassBill):
+    repair_count = models.IntegerField(blank=True, null=True, verbose_name=u"返修数")
+    after_repair_check = models.TextField(max_length=200, null=True, blank=True, verbose_name=u"修后检查")
+
+    class Meta:
+        verbose_name=u"退修单"
+        verbose_name_plural=u"退休单"
+
+    def __unicode__(self):
+        return u"%s-%s" % (self.work_order, self.no)
+
+class ScrapBill(UnPassBill):
+    scrap_count = models.IntegerField(blank=True, null=True, verbose_name=u"报废数")
+
+    class Meta:
+        verbose_name=u"报废单"
+        verbose_name_plural=u"报废单"
+
+    def __unicode__(self):
+        return u"%s-%s" % (self.work_order, self.no)

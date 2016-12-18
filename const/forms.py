@@ -11,7 +11,7 @@
 
 from django import forms
 from const import *
-from const.models import InventoryType, WorkOrder
+from const.models import InventoryType, WorkOrder, SubWorkOrder
 from users.models import Group
 
 class WorkOrderForm(forms.Form):
@@ -49,6 +49,24 @@ class InventoryTypeForm(forms.Form):
         self.fields["inventory_type"].choices = TYPE_CHOICES
 
 
-
-
+class SubWorkOrderForm(forms.Form):
+    """
+    Author:mxl
+    summary:
+    store all sub work orders of a work order
+    """
+    sub_work_order = forms.ChoiceField(label=u"子工作令", widget = forms.Select(attrs = {"class": "form-control input"}))
+    def __init__(self, *args, **kwargs):
+        super(SubWorkOrderForm, self).__init__(*args, **kwargs)
+        order_id = kwargs.get("order_id", 0)
+        if order_id:
+            kwargs.pop("order_id")
+        else:
+            orders = WorkOrder.objects.all()
+            if orders:
+                order = orders[0]
+                order_id = order.id
+        if order_id:
+            CHOICES = tuple((item.id, "%s-%s" % (item.order, item.index)) for item in SubWorkOrder.objects.filter(order__id=order_id))
+            self.fields["sub_work_order"].choices = CHOICES
 

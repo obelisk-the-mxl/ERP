@@ -10,8 +10,27 @@
 {% endblock %}
 
 {% block inner_content %}
+<form class="form-search">
+    工作令：
+    <span id="order_span">{{ form.work_order }}</span>
+    <span id="sub_order_span">{{ sub_order_form.sub_work_order }}</span>
+    <span class="btn" id="order_search">检索</span>
+</form>
+<br/>
 <div id="div_report" id_work_order="{{work_order.id}}">
-   
+    {% include "quality/reports/IFeedingReport.html" %}
+</div>
+<div class="modal fade" id="feeding_item_modal" modal-size-width="0.9">
+    <div class="modal-header">
+        <h2>投料检验报告单</h2>
+    </div>
+    <div class="modal-body">
+        {% include "quality/forms/items/feeding_item_form.html" %}
+    </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal" id="cancel_report_change">关闭</button>
+        <button type="button" class="btn btn-primary" data-dismiss="modal" id="save_report_form">保存</button>
+      </div>
 </div>
 <script type='text/javascript' src="{{ STATIC_URL  }}jquery/jquery.form.js"></script>
 <script type='text/javascript' src="{{STATIC_URL}}js/quality/feedingItems.js"></script>

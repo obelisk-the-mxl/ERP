@@ -1,5 +1,3 @@
-$(document).ready(refresh);
-
 function refresh() {
     var id_work_order = $("#id_work_order").val();
     Dajaxice.quality.getFeedingItemsTable(
@@ -12,3 +10,7 @@ function refresh() {
 function refreshCallBack(data) {
     $("#div_report").html(data.html);
 }
+
+$(document).on("dblclick", "#div_report tbody .feeding_row", function() {
+    $("#feeding_item_modal").modal();
+});

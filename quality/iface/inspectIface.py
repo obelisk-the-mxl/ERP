@@ -37,4 +37,15 @@ class InspectIface(object):
         except Exception, e:
             return self.__get_err_response(self.INTERNAL_SERVER_ERR, str(e))
         return resp
-
+    
+    def get_inspect_report(work_order_id, category):
+        try:
+            if not work_order_id or not category:
+                return self.__get_err_response(self.ILLEGAL_PARAM)
+            if not self.client:
+                return self.__get_err_response(self.INTERNAL_SERVER_ERR)
+            req = GetInspectReportReq(work_order_id=work_order_id, category=category)
+            resp = self.client.get_inspect_report(req)
+        except Exception, e:
+            return self.__get_err_response(self.INTERNAL_SERVER_ERR, str(e))
+        return resp

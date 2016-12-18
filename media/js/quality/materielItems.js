@@ -5,3 +5,7 @@ $(document).on("dblclick", "#materiel_table tbody tr", function() {
 $(document).on("click", "#report_edit_btn", function(){
     $("#materiel_report_modal").modal();
 });
+
+$("#save_report_form").click(function(){
+    
+});
