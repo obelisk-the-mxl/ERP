@@ -1,33 +1,30 @@
 # coding: UTF-8
+
+from uuid import uuid4
+
 from django.db import models
 
 from django.contrib.auth.models import User
 
-from const import UnCheck, QA_STATUS, DILIVER_STATUS, UNDILIVER, REVIEW_COMMENTS_CHOICES
+from const import UnCheck, QA_STATUS, DILIVER_STATUS, UNDILIVER, \
+        REVIEW_COMMENTS_CHOICES, QUALITY_MARK_DICT, INSPECT_CATEGORY_CHOICE
 from const.models import WorkOrder, SubWorkOrder
-from production.models import ProcessDetail
+from production.models import ProcessDetail, SubMateriel
 
 import settings
 
 # Create your models here.
-class InspectCategory(models.Model):
-    name = models.CharField(max_length=50, verbose_name=u'检验类别')
-
-    class Meta:
-        verbose_name = u'检验类别'
-        verbose_name_plural = u'检验类别'
-
-    def __unicode__(self):
-        return u"%s" % self.name
 
 class InspectReport(models.Model):
+    id = models.CharField(max_length=40, default=uuid4, primary_key=True)
     work_order = models.ForeignKey(WorkOrder,blank=False, null=False, verbose_name=u'检验报告')
-    category = models.ForeignKey(InspectCategory, blank=False, null=False, verbose_name=u'检验类别')
-    owner = models.ForeignKey(User, blank=True, null=True, verbose_name=u'责任人')
+    category = models.IntegerField(choices=INSPECT_CATEGORY_CHOICE, blank=False, null=False, verbose_name=u'检验类别')
+    checkuser = models.ForeignKey(User, blank=True, null=True, verbose_name=u'检查员')
     checkdate = models.DateField(blank=True, null=True, verbose_name=u'审核日期')
     checkstatus = models.IntegerField(choices=QA_STATUS, blank=True, null=True, verbose_name=u'检验状态')
     conclusion = models.CharField(max_length=200, blank=True, null=True, verbose_name=u'检验结论')
     extra = models.TextField(max_length=5000, blank=True, null=True, verbose_name=u"额外字段")
+    is_finished = models.BooleanField(default=False, verbose_name=u"是否完成检验")
 
     class Meta:
         verbose_name=u'检验报告单'
@@ -36,7 +33,18 @@ class InspectReport(models.Model):
     def __unicode__(self):
         return u"%s%s" % (self.category, self.work_order)
 
+    def save(self, *args, **kwargs):
+        super(InspectReport, self).save(*args, **kwargs)
+        mark_list = QUALITY_MARK_DICT.get(self.category, [])
+        for mark in mark_list:
+            inspect_report_mark = InspectReportMark(
+                report=self,
+                title=mark
+            )
+            inspect_report_mark.save()
+
 class InspectItem(models.Model):
+    id = models.CharField(max_length=40, default=uuid4, primary_key=True)
     index = models.IntegerField(blank=False, null=False, verbose_name=u'检验序号')
     report = models.ForeignKey(InspectReport, blank=False, null=False, verbose_name=u'检验报告单')
     checkdate = models.DateField(blank=True, null=True, verbose_name=u'检验日期')
@@ -50,6 +58,19 @@ class InspectItem(models.Model):
 
     def __unicode__(self):
         return u"%s%s" % (self.report, self.index)
+
+class InspectReportMark(models.Model):
+    report = models.ForeignKey(InspectReport, blank=False, null=False, verbose_name=u'检验报告单')
+    title = models.CharField(max_length=100, blank=False, null=False, verbose_name=u"签字标题")
+    marker = models.ForeignKey(User, blank=True, null=True, verbose_name=u"签字人")
+    markdate = models.DateField(blank=True, null=True, verbose_name=u"签字日期")
+
+    class Meta:
+        verbose_name=u"报告单签字"
+        verbose_name_plural=u"报告单签字"
+
+    def __unicode__(self):
+        return "%s-%s" % (self.report, self.title)
 
 class MaterielReport(models.Model):
     base = models.OneToOneField(InspectReport, verbose_name=u'报告单Base')
@@ -85,7 +106,7 @@ class MaterielInspectItem(models.Model):
     
 class ProcessReport(models.Model):
     base = models.OneToOneField(InspectReport, verbose_name=u"报告单")
-    sub_work_order = models.ForeignKey(SubWorkOrder, verbose_name=u"子工作令")
+    sub_work_order = models.OneToOneField(SubWorkOrder, verbose_name=u"子工作令")
 
     class Meta:
         verbose_name=u"工序检验报告单"
@@ -110,7 +131,7 @@ class ProcessInspectItem(models.Model):
 
 class FeedingReport(models.Model):
     base = models.OneToOneField(InspectReport, verbose_name=u'报告单Base')
-    sub_work_order = models.ForeignKey(SubWorkOrder, verbose_name=u"子工作令")
+    sub_work_order = models.OneToOneField(SubWorkOrder, verbose_name=u"子工作令")
     schematic_index = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"产品图号")
     product_name = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"产品名称")
     container_type = models.CharField(blank=True, null=True, max_length=50, verbose_name=u"容器类别")
@@ -144,12 +165,13 @@ class FeedingInspectItem(models.Model):
 
 class BarrelReport(models.Model):
     base = models.OneToOneField(InspectReport, verbose_name=u'报告项Base')
+    sub_materiel = models.OneToOneField(SubMateriel, verbose_name=u"零件")
     container_cate = models.CharField(blank=True, null=True, max_length=50, verbose_name=u"容器类别")
-    part_name = models.CharField(blank=True, null=True, max_length=50, verbose_name=u"零件名称")
-    product_name = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"产品名称")
-    texture = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"材质")
-    product_name = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"产品名称")
-    specification = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"规格")
+    #part_name = models.CharField(blank=True, null=True, max_length=50, verbose_name=u"零件名称")
+    #product_name = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"产品名称")
+    #texture = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"材质")
+    #product_name = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"产品名称")
+    #specification = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"规格")
 
     class Meta:
         verbose_name=u"封头/筒体检验"
@@ -160,10 +182,10 @@ class BarrelReport(models.Model):
 
 class BarrelInspectItem(models.Model):
     base_item = models.OneToOneField(InspectReport, verbose_name=u'报告项Base')
-    process_index = models.CharField(max_length = 50, verbose_name = u"工序")
+    process_detail = models.ForeignKey(ProcessDetail, verbose_name=u"工序")
     check_item = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"检验项目")
-    stipulate = models.FloatField(blank = True, null = True, verbose_name = u"规定值")
-    real = models.FloatField(blank = True, null = True, verbose_name = u"实际值")
+    stipulate = models.CharField(max_length=100, blank = True, null = True, verbose_name = u"规定值")
+    real = models.CharField(max_length=100, blank = True, null = True, verbose_name = u"实际值")
     operator = models.ForeignKey(User, verbose_name = u"操纵者")
     
     class Meta:
@@ -175,7 +197,8 @@ class BarrelInspectItem(models.Model):
 
 class AssembleReport(models.Model):
     base = models.OneToOneField(InspectReport, verbose_name=u'报告项Base')
-    schematic_index = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"产品图号")
+    sub_work_order = models.OneToOneField(SubWorkOrder, verbose_name=u"子工作令")
+    #schematic_index = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"产品图号")
     container_cate = models.CharField(blank=True, null=True, max_length=50, verbose_name=u"容器类别")
 
     class Meta:
@@ -203,13 +226,6 @@ class PressureReport(models.Model):
     product_no = models.CharField(max_length=20, verbose_name=u"产品编号")
     position = models.CharField(max_length=50, verbose_name=u"试压部位")
     techcard_no = models.CharField(max_length=50, verbose_name=u"工艺卡编号")
-    media = models.CharField(max_length=50, verbose_name=u"试压介质")
-    stipulate_media = models.FloatField(verbose_name=u"要求介质温度")
-    real_media = models.FloatField(verbose_name=u"实际介质温度")
-    stipulate_env = models.FloatField(verbose_name=u"要求环境温度")
-    real_env = models.FloatField(verbose_name=u"实际环境温度")
-    stipulate_curve = models.FileField(null=True, blank=True, upload_to=settings.QUALITY_FILE_PATH + "/%Y/%m/%d", verbose_name=u"要求压力试验曲线")
-    real_curve = models.FileField(null=True, blank=True, upload_to=settings.QUALITY_FILE_PATH + "/%Y/%m/%d", verbose_name=u"实际压力试验曲线")
 
     class Meta:
         verbose_name=u"压力试验报告"
@@ -218,20 +234,30 @@ class PressureReport(models.Model):
     def __unicode__(self):
         return u"%s" % base
 
-class PressureInspectItem(models.Model):
-    base_item = models.OneToOneField(InspectReport, verbose_name=u'报告项Base')
-    no = models.CharField(max_length=20, verbose_name=u"编号")
-    range = models.FloatField(verbose_name=u"量程")
-    diameter = models.FloatField(verbose_name=u"表盘直径")
-    precision_level = models.CharField(max_length=20, verbose_name=u"精度等级")
-    number = models.FloatField(max_length=20, verbose_name=u"读数")
+class PressureReportItem(models.Model):
+    index = models.IntegerField(blank=False, null=False, verbose_name=u'序号')
+    text = models.CharField(max_length=100, verbose_name=u"文本")
+    attr_name = models.CharField(max_length=20, verbose_name=u"属性")
+    stipulate_value = models.CharField(max_length=20, blank=True, null=True, verbose_name=u"值")
 
     class Meta:
         verbose_name=u"压力试验项"
         verbose_name_plural=u"压力试验项"
 
     def __unicode__(self):
-        return u"%s" % self.base_item
+        return u"%s" % self.text
+
+class PressureReportValue(models.Model):
+    report = models.ForeignKey(PressureReport, verbose_name=u"报告单")
+    item = models.ForeignKey(PressureReportItem, verbose_name=u"项")
+    value = models.CharField(max_length=20, blank=True, null=True, verbose_name=u"值")
+
+    class Meta:
+        verbose_name=u"压力试验值项"
+        verbose_name_plural=u"压力试验值项"
+
+    def __unicode__(self):
+        return "%s:%s" % (self.report, self.item)
 
 class FacadeReport(models.Model):
     base = models.OneToOneField(InspectReport, verbose_name=u'报告单Base')
@@ -271,6 +297,7 @@ class FinalInspect(models.Model):
         return u"%s" % self.work_order
 
 class UnPassBill(models.Model):
+    id = models.CharField(max_length=40, default=uuid4, primary_key=True)
     #work_order = models.ForeignKey(WorkOrder, verbose_name=u"所属工作令")
     process_detail = models.ForeignKey(ProcessDetail, verbose_name=u"所属工序")
     texture = models.CharField(max_length=100, null=True, blank=True, verbose_name=u"材质")
@@ -334,3 +361,17 @@ class ScrapBill(UnPassBill):
 
     def __unicode__(self):
         return u"%s-%s" % (self.work_order, self.no)
+
+class InspectItemConst(models.Model):
+    category = models.IntegerField(choices=INSPECT_CATEGORY_CHOICE, blank=False, null=False, verbose_name=u'检验类别')
+    index = models.IntegerField(blank=False, null=False, verbose_name=u'序号')
+    check_item = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"检验项目")
+    stipulate = models.CharField(max_length=100, blank = True, null = True, verbose_name = u"规定值")
+     
+    class Meta:
+        verbose_name=u"检查项目常量"
+        verbose_name_plural=u"检查项目常量"
+
+    def __unicode__(self):
+        return "%s-%s" % (self.category, self.check_item)
+

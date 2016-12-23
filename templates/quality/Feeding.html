@@ -5,7 +5,6 @@
 {% endblock %}
 
 {% block sub_ref %}
-<a href="/quality/feedInspect" class="tip-bottom" data-original-title="零件检验">零件检验</a-->
 <a href="#" class="current">零件先投料检验</a>
 {% endblock %}
 
@@ -15,17 +14,34 @@
     <span id="order_span">{{ form.work_order }}</span>
     <span id="sub_order_span">{{ sub_order_form.sub_work_order }}</span>
     <span class="btn" id="order_search">检索</span>
+    <span class="btn btn-success" style="float:right" id="finish_report_btn">完成检验</span>
+    <span style="float:right">&nbsp;</span>
+    <span class="btn btn-primary" style="float:right" id="feeding_report_edit_btn">编辑报告单</span>
 </form>
 <br/>
 <div id="div_report" id_work_order="{{work_order.id}}">
-    {% include "quality/reports/IFeedingReport.html" %}
+    {% include "quality/widgets/report/feeding_report.html" %}
 </div>
 <div class="modal fade" id="feeding_item_modal" modal-size-width="0.9">
     <div class="modal-header">
-        <h2>投料检验报告单</h2>
+        <h2>投料检验项</h2>
     </div>
     <div class="modal-body">
+        {% include "quality/forms/items/inspect_item_form.html" %}
         {% include "quality/forms/items/feeding_item_form.html" %}
+    </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal" id="cancel_report_change">关闭</button>
+        <button type="button" class="btn btn-primary" data-dismiss="modal" id="save_report_form">保存</button>
+      </div>
+</div>
+<div class="modal fade" id="feeding_report_modal" modal-size-width="0.9">
+    <div class="modal-header">
+        <h2>投料检验项</h2>
+    </div>
+    <div class="modal-body">
+        {% include "quality/forms/reports/inspect_report_form.html" %}
+        {% include "quality/forms/reports/feeding_report_form.html" %}
     </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal" id="cancel_report_change">关闭</button>

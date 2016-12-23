@@ -8,21 +8,27 @@ from dajaxice.decorators import dajaxice_register
 from dajaxice.utils import deserialize_form
 from django.template.loader import render_to_string
 from django.utils import simplejson
-
+from django.db.models import Q
  
 from iface.inspectIface import InspectIface
 
 from const.forms import SubWorkOrderForm
 
-from quality.models import InspectCategory, InspectReport, MaterielReport, UnPassBill, UnQualityGoodsBill, RepairBill, ScrapBill, \
-        FeedingReport
+from quality.models import  InspectReport, MaterielReport, UnPassBill, UnQualityGoodsBill, RepairBill, ScrapBill, \
+        FeedingReport, InspectReportMark, InspectItemConst, AssembleReport, AssembleInspectItem, \
+        PressureReport, PressureReportItem, PressureReportValue
 from production.models import SubMateriel, ProcessDetail
 from const import IMATERIEL, IPROCESS, IFEEDING, IBARREL, IASSEMBLE, IPRESSURE, IFACADE, \
-        FINISHED, APPLYCARD_END, REFUNDSTATUS_CHOICES_END
-from forms import InspectReportForm, InspectItemForm, MaterielReportForm, MaterielItemForm
+        FINISHED, APPLYCARD_END, REFUNDSTATUS_CHOICES_END, BARREL_INSPECT_ITEMS, \
+        INSPECT_MARK, MATERIEL_MANAGER_MARK
+from quality.forms import InspectReportForm, InspectItemForm, MaterielReportForm, MaterielItemForm, \
+        FeedingReportForm, FeedingInspectItemForm, BarrelReportForm, BarrelInspectItemForm, \
+        InspectItemConstForm, AssembleReportForm, AssembleInspectItemForm
 
 from storage.models import SteelMaterialApplyCard, SteelMaterialApplyCardItems, SteelMaterialRefundCard, BoardSteelMaterialRefundItems, BarSteelMaterialRefundItems,  \
         OutsideApplyCard, OutsideApplyCardItems, OutsideRefundCard, OutsideRefundCardItems
+
+from quality.utility import *
 
 
 inspect_dict = {
@@ -36,6 +42,35 @@ inspect_dict = {
 }
 
 @dajaxice_register
+def addInspectConst(request, const_form, cate):
+    try:
+        category = inspect_dict.get(cate)
+        cnt = InspectItemConst.objects.filter(category=category).aggregate(Max('index'))['index__max']
+        const_form = InspectItemConstForm(deserialize_form(const_form))
+        const_obj = const_form.save(commit=False)
+        const_obj.index = cnt + 1
+        const_obj.category = category
+        const_obj.save()
+        ret = 0
+    except:
+        ret = 1
+    return {"ret": ret}
+
+@dajaxice_register
+def deleteInspectConst(request, iid):
+    try:
+        del_const = InspectItemConst.objects.get(id=iid)
+        const_items = InspectItemConst.objects.filter(category=del_const.category).filter(index > del_const.index)
+        for item in const_item:
+            item.index = item.index - 1
+            item.save()
+        del_const.delete()
+        ret = 0
+    except:
+        ret =1
+    return {"ret": ret}
+
+@dajaxice_register
 def getMaterielReportTable(request, id_work_order):
     """
     author:mxl
@@ -45,9 +80,9 @@ def getMaterielReportTable(request, id_work_order):
     cate = "IMATERIEL"
     category = inspect_dict.get(cate, 0)
     if id_work_order:
-        reports = MaterielReport.objects.filter(base__work_order__id=id_work_order).exclude(checkstatus=FINISHED)
+        reports = MaterielReport.objects.filter(base__work_order__id=id_work_order).exclude(is_finished=True)
     else:
-        reports = MaterielReport.objects.filter(base__category__id=category).exclude(checkstatus=FINISHED)
+        reports = MaterielReport.objects.filter(base__category=category).exclude(is_finished=True)
     for report in reports:
         report.extra_dict = json.loads(report.base.extra) if report.base.extra else {}
     context = {
@@ -68,7 +103,7 @@ def getMaterielItemsTable(request, id_work_order):
     """
     cate = "IMATERIEL"
     category = inspect_dict.get(cate, 0)
-    report = MaterielReport.objects.get(base__work_order__id=work_order, base_categroty__id=category)
+    report = MaterielReport.objects.get(base__work_order__id=work_order, base_categroty=category)
     report.base.extra_str = json.loads(report.base.extra) if report.base.extra else {}
 
     items = MaterielInspectItem.objects.filter(base_item__report__id=report.base.id)
@@ -152,6 +187,21 @@ def updateMaterielItem(request, item_id, inspect_item_form, materiel_form):
     return ret
 
 @dajaxice_register
+def finishMaterielReport(request, work_order_id):
+    category = inspect_dict.get(cate)
+    try:
+        report = InspectReport.objects.get(work_order__id=work_order_id, category=category)
+        if check_report_canbe_finish(report):
+            report.is_finished = True
+            report.save()
+            ret = 0
+        else:
+            ret = 1
+    except:
+        ret = 2
+    return {"ret": ret}
+
+@dajaxice_register
 def get_subworkorder(request, order_id):
     """
     author: mxl
@@ -174,7 +224,8 @@ def getProcessingItemForm(request, iid):
     return render_to_string("quality/forms/items/processing_form.html", context)
 
 def getProcessDetail(sub_work_order):
-    category = Category.objects.get(name="IPROCESS")
+    cate="IPROCESS"
+    category = inspect_dict.get(cate)
     inspect_report = InspectReport.objects.get_or_create(
         work_order=sub_work_order.order,
         category=category
@@ -199,7 +250,7 @@ def getProcessDetail(sub_work_order):
             i += 1
             items.append(process_inspect_item)
 
-    return items
+    return items, process_report
 
 @dajaxice_register
 def getProcessingItems(request, sub_work_order_id):
@@ -210,20 +261,22 @@ def getProcessingItems(request, sub_work_order_id):
     """
     items = []
     sub_work_order = SubWorkOrder.objects.get(id=sub_work_order_id)
+    report = ProcessReport.get(sub_work_order__id=sub_work_order_id)
     try:
         sub_materiels = SubMateriel.objects.filter(materiel_belong__order=sub_work_order.order).filter(sub_order=sub_work_order)
         for sub_materiel in sub_materiels:
-            processing_items = ProcessInspectItem.objects.get(process_detail__sub_materiel_belong=sub_materiel) 
+            processing_items = ProcessInspectItem.objects.filter(process_detail__sub_materiel_belong=sub_materiel) 
             for item in processing_items:
                 if not item.add_to_unpass:
                     item.extra_str = json.loads(item.base_item.extra) if item.base_item.extra else {}
                     items.append(item)
         if not items:
-            items = getProcessDetail(sub_work_order)
+            items, report = getProcessDetail(sub_work_order)
     except:
         items = []
     context = {
-        "items": items
+        "items": items,
+        "report": report
     }
     html = render_to_string("quality/tables/items/processing_table.html")
     ret = {
@@ -232,7 +285,7 @@ def getProcessingItems(request, sub_work_order_id):
     return ret
 
 @dajaxice_register
-def updateProcessingReport(request, id_work_order, inspect_report_form):
+def updateProcessingReport(request, sub_work_order_id, inspect_report_form):
     """
     author:mxl
     summary:
@@ -240,7 +293,7 @@ def updateProcessingReport(request, id_work_order, inspect_report_form):
     """
     try:
         inspect_report_form = InspectReportForm(deserialize_form(inspect_item_form), \
-                                               instance=InspectReport.objects.get(base__work_order__id=id_work_order))
+                                               instance=InspectReport.objects.get(sub_work_order_id=sub_work_order_id))
         if inspect_report_form.is_valid():
             inspect_report_obj = inspect_report_form.save(commit=False)
             inspect_report.obj.checkddate = datetime.datetime.now()
@@ -319,6 +372,11 @@ def addUnPassBill(request, process_detail_ids, bill_type):
                 process_inspect_item.save()
 
                 success_ids.append(pid)
+
+                iface = InspectIface()
+                checkuser = request.user.id
+                checkdate = datetime.datetime.now()
+                iface.update_item(process_inspect_item.base_item.id, CheckUnPass, checkuser, checkdate, {})
             except:
                 pass
     ret = {
@@ -326,6 +384,21 @@ def addUnPassBill(request, process_detail_ids, bill_type):
         "cate": bill_type
     }
     return ret
+
+@dajaxice_register
+def finishProcessReport(request, sub_work_order_id):
+    category = inspect_dict.get(cate)
+    try:
+        report = InspectReport.objects.get(work_order__subworkorder__id=sub_work_order_id, category=category, processreport__sub_work_order__id=sub_work_order_id)
+        if check_report_canbe_finish(report):
+            report.is_finished = True
+            report.save()
+            ret = 0
+        else:
+            ret = 1
+    except:
+        ret = 2
+    return {"ret": ret}   
 
 @dajaxice_register
 def getProcessComplete(request, sub_work_order_id):
@@ -337,7 +410,7 @@ def getProcessComplete(request, sub_work_order_id):
     """
     ret = {}
     sub_work_order = SubWorkOrder.objects.get(id=sub_work_order_id)
-    materiels = sub_work_order.order.materiel_set()
+    materiels = sub_work_order.order.materiel_set.all()
     for materiel in materiels:
         date_list = []
         process_details = ProcessDetail.objects.filter(sub_materiel_belong__materiel_belong=materiel).filter(sub_materiel_belong__sub_order=sub_work_order).order_by("complete_process_date")
@@ -429,7 +502,8 @@ summary: set the items get from applycard to database
 """
 def setToFeedingDB(items, sub_work_order_id):
     sub_order = SubWorkOrder.objects.get(id=sub_work_order_id)
-    category = Category.objects.get(name="IPROCESS") 
+    cate = "IPROCESS"
+    category = inspect_dict.get(cate)
     inspect_report = InspectReport.objects.get_or_create(
         work_order=sub_order.order,
         category=category
@@ -439,6 +513,12 @@ def setToFeedingDB(items, sub_work_order_id):
         sub_work_order=sub_order,
         product_name=sub_order.order.product_name
     )
+    mark_list = INSPECT_MARK.get(category)
+    for mark in mark_list:
+        materiel_manager_mark = InspectReportMark.objects.create(
+            report=inspect_report,
+            title=mark
+        )
     for i, item in items.enumerate():
         inspect_item = InspectItem(
             report=feeding_report,
@@ -457,6 +537,7 @@ def getFeedingItemsTable(request, sub_work_order_id):
     summary: get feeding inspect items by sub work_order_id
     """
     sub_work_order = SubWorkOrder.objects.get(id=sub_work_order_id)
+    report = FeedingReport.objects.get(sub_work_order__id=sub_work_order_id)
     feeding_inspect_items = FeedingInspectItem.object.filter(base_item__report__work_order=sub_work_order.order)
     if not feeding_inspect_items:
         items = getSteelFeedingList(sub_work_order) + getOutsideFeedingList(sub_work_order)
@@ -473,8 +554,8 @@ def getFeedingItemsTable(request, sub_work_order_id):
 
 
     context = {
-        "sub_work_order": sub_work_order,
-        "items": items
+        "items": items,
+        "report": report
     }
     html = render_to_string("quality/reports/IFeedingReport.html", context)
     ret = {
@@ -497,7 +578,7 @@ def getFeedingReportForm(request, sub_work_order_id):
     return render_to_string("quality/forms/reports/feeding_report_form.html")
 
 @dajaxice_register
-def updateFeedingReport(request, id_work_order, inspect_report_form, feeding_report_form):
+def updateFeedingReport(request, sub_work_order_id, inspect_report_form, feeding_report_form):
     """
     author:mxl
     summary:
@@ -505,7 +586,9 @@ def updateFeedingReport(request, id_work_order, inspect_report_form, feeding_rep
     """
     try:
         inspect_report_form = InspectReportForm(deserialize_form(inspect_item_form), \
-                                               instance=InspectReport.objects.get(base__work_order__id=id_work_order))
+                                               instance=InspectReport.objects.get(sub_work_order_id=sub_work_order_id))
+        feeding_report_form = FeedingReportForm(deserialize_form(feeding_item_form),
+                                               instance=FeedingReport.objects.get(work_order__id=id_work_order))
         if inspect_report_form.is_valid() and feeding_report_form.is_valid():
             inspect_report_obj = inspect_report_form.save(commit=False)
             inspect_report.obj.checkddate = datetime.datetime.now()
@@ -529,6 +612,8 @@ def updateFeedingItem(request, item_id, inspect_item_form, feeding_item_form):
     try:
         inspect_item_form = InspectItemForm(deserialize_form(inspect_item_form), \
                                            instance=InspectItem.objects.get(id=item_id))
+        feeding_item_form = FeedingInspectItemForm(deserialize_form(feeding_item_form),
+                                                  instance=FeedingInspectItem.object.get(id=item_id))
         if inspect_item_form.is_valid() and feeding_item_form.is_valid():
             checkstatus = inspect_item_form.cleaned_data["checkstatus"]
             checkuser = request.user.id
@@ -545,3 +630,304 @@ def updateFeedingItem(request, item_id, inspect_item_form, feeding_item_form):
         print e
         ret = {"StatusCode": 2}
     return ret
+
+@dajaxice_register
+def finishFeedingReport(request, sub_work_order_id):
+    category = inspect_dict.get(cate)
+    try:
+        report = InspectReport.objects.get(work_order__subworkorder__id=sub_work_order_id, category=category, processreport__sub_work_order__id=sub_work_order_id)
+        if check_report_canbe_finish(report):
+            report.is_finished = True
+            report.save()
+            ret = 0
+        else:
+            ret = 1
+    except:
+        ret = 2
+    return {"ret": ret}
+
+
+def setMaterielManagerMark(request, sub_work_order_id):
+    user = request.user
+    report = InspectReport.objects.get(feedingreport__sub_work_order__id=sub_work_order_id)
+    mark = InspectReportMark.objects.get(report=report, title=MATERIEL_MANAGER_MARK)
+    mark.marker = user
+    mark.markdate = datetime.datetime.now()
+    mark.save()
+
+def getBarrelMateriel(sub_work_order_id):
+    """
+    author:mxl
+    summary:
+    get barrel inspect item by transfer card in techdata
+    """
+    sub_order = SubWorkOrder.objects.get(id=sub_work_order_id).select_related("sub_materiel")
+    sub_materiels = sub_order.submateriel_set.filter(sub_order=sub_order).filter(Q(sub_order__order__transfercard_card_type=CYLIDER_TRANSFER_CARD) | Q(sub_order__order__transfercard__card_type=CAP_TRANSFER_CARD))
+    cate = "IBARREL"
+    category = inspect_dict.get(cate)
+    reports = []
+
+    """
+    get stipulate value
+    """
+    stipulate_values = []
+    stipulates = InspectItemConst.objects.filter(category=category).order_by("index")
+    for s in stipulates:
+        stipulate_values.append(s.stipulate)
+
+    for sub_materiel in sub_materiels:
+        inspect_report = InspectReport.objects.get(
+            work_order=work_order,
+            category=category,
+            barrelreport__sub_materiel=sub_materiel
+        )
+        
+        if not inspect_report:
+            inspect_report = InspectReport(
+                work_order=work_order,
+                category=category
+            )
+            inspect_report.save()
+     
+        barrel_report = BarrelReport.objects.get(
+            base__work_order=work_order,
+            sub_materiel=sub_materiel
+        )
+
+        if not barrel_report:
+            barrel_report = BarrelReport(
+                base=inspect_report,
+                sub_materiel=sub_materiel
+            )
+            barrel_report.save()
+
+        cnt = 0
+        for i, group in enumerate(BARREL_INSPECT_ITEMS):
+            process_name = group[0]
+            process_detail = ProcessDetail.objects.get(processname__name=process_name,
+                                                      sub_materiel=sub_materiel)
+            items = group[1]
+            for j, item in enumerate(items):
+                index = cnt + j 
+                
+                stipulate = stipulate_values[index]
+    
+                inspect_item = InspectItem(
+                    report=inspect_report,
+                    index=index
+                )
+                inspect_item.save()
+                barrel_item = BarrelInspectItem(
+                    base_item=inspect_item, 
+                    check_item=title_item,
+                    process_detail=process_detail,
+                    stipulate=stipulate
+                )
+                barrel_item.save()
+            cnt += len(group)
+        reports.append(barrel_report)
+    return reports
+
+
+def getBarrelReports(request, sub_work_order_id):
+    reports = BarrelReport.objects.filter(sub_materiel__sub_order__id=sub_work_order_id)
+    if not reports:
+        reports = getBarrelReports(sub_work_order_id)
+    context = {
+        "reports": reports
+    }
+    return render_to_string("quality/tables/reports/barrel_reports_table.html") 
+
+
+def getBarrelReportDetail(request, report_id):
+    report = BarrelReport.objects.get(base__report__id=report_id).selet_related("barrelinspectitem")
+    barrel_inspect_items = report.barrelinspectitem_set.all()
+    context = {
+        "items": barrel_inspect_items,
+        "report": report
+    }
+    return render_to_string("quality/reports/IBarrelReport.html")
+
+@dajaxice_register
+def updateBarrelReport(request, sub_materiel_id, inspect_report_form, barrel_report_form):
+    """
+    author:mxl
+    summary:
+    update barrel inspect report
+    """
+    try:
+        inspect_report_form = InspectReportForm(deserialize_form(inspect_item_form), \
+                                               instance=InspectReport.objects.get(sub_materiel_id=sub_materiel_id))
+        barrel_report_form = BarrelReportForm(deserialize_form(barrel_report_form), \
+                                             instance=BarrelReport.objects.get(work_order__id=id_work_order))
+        if inspect_report_form.is_valid() and barrel_report_form.is_valid():
+            inspect_report_obj = inspect_report_form.save(commit=False)
+            inspect_report.obj.checkddate = datetime.datetime.now()
+            inspect_report_obj.save()
+            barrel_report_form.save()
+            
+            ret = {"StatusCode": 0}
+        else:
+            ret = {"StatusCode": 1}
+    except:
+        ret = {"StatusCode": 2}
+    return ret
+
+@dajaxice_register
+def updateBarrelItem(request, item_id, inspect_item_form, barrel_item_form):
+    """
+    author:mxl
+    summary:
+    update barrel inspect item
+    """
+    try:
+        inspect_item_form = InspectItemForm(deserialize_form(inspect_item_form), \
+                                           instance=InspectItem.objects.get(id=item_id))
+        barrel_item_form = BarrelInspectItemForm(deserialize_form(barrel_item_form), \
+                                                instance=BarrelInspectItem.objects.get(id=item_id))
+        if inspect_item_form.is_valid() and barrel_item_form.is_valid():
+            checkstatus = inspect_item_form.cleaned_data["checkstatus"]
+            checkuser = request.user.id
+            checkdate = datetime.datetime.now()
+            extra = inspect_item_form.cleaned_data["extra"]
+
+            iface = InspectIface()
+            iface.update_item(item_id, checkstatus, checkuser, checkdate, extra)
+            barrel_item_form.save()
+            ret = {"StatusCode": 0}
+        else:
+            ret = {"StatusCode": 1}
+    except Exception, e:
+        print e
+        ret = {"StatusCode": 2}
+    return ret
+
+def createAssembleItems(report, category):
+    """
+    the callback of create assemble items
+    when barrel inspect is finished
+    """
+    const_items = InspectItemConst.objects.filter(category=category).order_by("index")
+    for index, const_item in enumerate(const_items):
+        inspect_item = InspectItem.objects.create(
+            report=report,
+            index=index
+        )
+        assemble_item = AssembleInspectItem.objects.create(
+            base_item=inspect_item,
+            check_item=const_item.check_item,
+            stipulate=stipulate
+        )
+
+@dajaxice_register
+def finishBarrelReport(request, sub_materiel_id):
+    cate = "IASSEMBLE"
+    category = inspect_dict.get(cate)
+    try:
+        report = InspectReport.objects.get(barrel__sub_materiel__id=sub_materiel_id)
+        barrel_report = BarrelReport.objects.get(sub_materiel__id=sub_materiel_id).select_related("sub_materiel").select_related("base")
+        report = barrel_report.base
+        sub_work_order_id = barrel_report.sub_materiel.sub_order
+        if check_report_canbe_finish(report):
+            report.is_finished = True
+            report.save()
+            ret = 0
+            afterFinish(sub_work_order_id, category, create_item_func=createAssembleItems)
+        else:
+            ret = 1
+    except:
+        ret = 2
+    return {"ret": ret}
+
+@dajaxice_register
+def getAssembleItems(request, sub_work_order_id):
+    report = AssembleReport.objects.get(sub_work_order__id=sub_work_order_id).select_related("base")
+    inspect_items = report.base.inspectitem_set.all()
+    items = map(lambda x: x.assembleinspectitem, inspect_items)
+    context = {
+        "items": items,
+        "report": report
+    }
+    return render_to_string("quality/Assemble.html", context)
+
+
+@dajaxice_register
+def updateAssembleReport(request, sub_work_order_id, inspect_report_form, assemble_report_form):
+    """
+    author:mxl
+    summary:
+    update assemble inspect report
+    """
+    try:
+        inspect_report_form = InspectReportForm(deserialize_form(inspect_item_form), \
+                                               instance=InspectReport.objects.get(base__work_order__id=id_work_order))
+        assemble_report_form = AssembleReportForm(deserialize_form(barrel_report_form), \
+                                             instance=AssembleReport.objects.get(sub_work_order__id=sub_work_order_id))
+        if inspect_report_form.is_valid() and assemble_report_form.is_valid():
+            inspect_report_obj = inspect_report_form.save(commit=False)
+            inspect_report.obj.checkddate = datetime.datetime.now()
+            inspect_report_obj.save()
+            assemble_report_form.save()
+            
+            ret = {"StatusCode": 0}
+        else:
+            ret = {"StatusCode": 1}
+    except:
+        ret = {"StatusCode": 2}
+    return ret
+
+@dajaxice_register
+def updateBarrelItem(request, item_id, inspect_item_form, assemble_item_form):
+    """
+    author:mxl
+    summary:
+    update assemble inspect item
+    """
+    try:
+        inspect_item_form = InspectItemForm(deserialize_form(inspect_item_form), \
+                                           instance=InspectItem.objects.get(id=item_id))
+        barrel_item_form = BarrelInspectItemForm(deserialize_form(barrel_item_form), \
+                                                instance=AssembleInspectItem.objects.get(id=item_id))
+        if inspect_item_form.is_valid() and barrel_item_form.is_valid():
+            checkstatus = inspect_item_form.cleaned_data["checkstatus"]
+            checkuser = request.user.id
+            checkdate = datetime.datetime.now()
+            extra = inspect_item_form.cleaned_data["extra"]
+
+            iface = InspectIface()
+            iface.update_item(item_id, checkstatus, checkuser, checkdate, extra)
+            assemble_item_form.save()
+            ret = {"StatusCode": 0}
+        else:
+            ret = {"StatusCode": 1}
+    except Exception, e:
+        print e
+        ret = {"StatusCode": 2}
+    return ret
+
+
+def createPressureItems(report, category):
+    items = PressureReportItem.objects.all().order_by("index")
+    for item in items:
+        value_item = PressureReportValue.objects.create(
+            report=report,
+            item=item
+        )
+
+def finishAssembleReport(request, sub_work_order_id):
+    cate = "IASSEMBLE"
+    category = inspect_dict.get(cate)
+    try:
+        report = AssembleReport.objects.get(sub_work_order__id=sub_work_order_id)
+        if check_report_canbe_finish(report):
+            report.is_finished = True
+            report.save()
+            afterFinish(sub_work_order_id, category, create_item_func=createPressureItems)
+            ret = 0
+        else:
+            ret = 1
+    except:
+        ret = 2
+    return {"ret": ret}
+
+

@@ -7,6 +7,10 @@ from quality import views as quality_views
 urlpatterns=patterns(
     '',
     url(
+        r'^const/$',
+        quality_views.constViews,
+    ),
+    url(
         r'^materiel/$',
         quality_views.materielViews,
     ),
@@ -25,5 +29,21 @@ urlpatterns=patterns(
     url(
         r'^feeding/$',
         quality_views.feedingViews,
+    ),
+    url(
+        r'^barrel/$',
+        quality_views.barrelViews,
+    ),
+    url(
+        r'^barrel_detail/(\w+)/$',
+        quality_views.barrelReportDetailViews,
+    ),
+    url(
+        r'^assemble/$',
+        quality_views.assembleViews,
+    ),
+    url(
+        r'^pressure/$',
+        quality_views.pressureViews,
     ),
 )

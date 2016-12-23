@@ -7,6 +7,13 @@ from const.models import WorkOrder
 from quality.forms import *
 from quality.models import *
 
+def constViews(request):
+    category_form = InspectCategoryForm()
+    context = {
+        "category_form": category_form
+    }
+    return render(request, "quality/ConstInput.html", context)
+
 def materielViews(request):
     work_order_form = WorkOrderForm()
     context = {
@@ -39,3 +46,35 @@ def feedingViews(request):
         "sub_order_form": sub_order_form
     }
     return render(request, "quality/Feeding.html", context)
+
+def barrelViews(request):
+    work_order_form = WorkOrderForm()
+    sub_order_form = SubWorkOrderForm()
+    context = {
+        "form": work_order_form,
+        "sub_order_form": sub_order_form
+    }
+    return render(request, "quality/Barrel.html", context)
+
+def barrelReportDetailViews(request, sub_materiel):
+    context = {}
+    return render(request, "quality/reports/IBarrelReport.html", context)
+
+def assembleViews(request):
+    work_order_form = WorkOrderForm()
+    sub_order_form = SubWorkOrderForm()
+    context = {
+        "form": work_order_form,
+        "sub_order_form": sub_order_form
+    }
+    return render(request, "quality/Assemble.html", context)
+
+
+def pressureViews(request):
+    work_order_form = WorkOrderForm()
+    sub_order_form = SubWorkOrderForm()
+    context = {
+        "form": work_order_form,
+        "sub_order_form": sub_order_form
+    }
+    return render(request, "quality/Pressure.html", context)

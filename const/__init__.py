@@ -840,3 +840,65 @@ DILIVER_STATUS=(
     (UNDILIVER, u'未交货'),
     (DILIVER, u'交货')
 )
+
+QUALITY_MARK_DICT = {
+    IMATERIEL: [u"材料责任工程师"],
+    IPROCESS: [u"工艺责任师"],
+    IFEEDING: [u"材料责任工程师"],
+    IBARREL: [u"检查站长"],
+    IASSEMBLE: [u"检查站长"],
+    IPRESSURE: [u"监检员", u"检验责任师", u"压力试验责任师"],
+    IFACADE: [u"检验责任师"]
+}
+
+FEED_MATERIEL_MARK = u"材质标记"
+FEED_THICKNESS = u"下料厚度mm"
+FEED_UNFOLD_SIZE = u"下料展开尺寸"
+GROOVE_TYPE = u"坡口型式"
+GRROVE_ANGLE = u"坡口角度"
+FITUP_INTERVAL = u"组对间隙"
+
+
+BARREL_INSPECT_ITEMS = (
+    ("XL",
+        (
+            u"材质标记",
+            u"厚度mm",
+            u"展开尺寸mm",
+        )
+    ),
+    ("PK",
+        (
+            u"坡口型式",
+            u"角度",
+        )
+    ),
+    ("ZD",
+        (
+            u"组对间隙mm",
+            u"对口错边量"
+        )
+    ),
+   ("HF",
+        (
+            u"焊缝余高mm",
+            u"焊缝外观质量",
+        )
+    ),
+    ("JG",
+        (
+            u"坡口型式",
+            u"角度"
+        )
+    )
+)
+
+MATERIEL_MANAGER_MARK = u"材料责任师签字"
+INSPECTOR_MARK = u"监检员签字"
+INSPECT_MANAGER_MARK = u"检验责任师"
+PRESSURE_MANAGER_MARK = u"压力试验责任师"
+
+INSPECT_MARK = {
+    IFEEDING: [MATERIEL_MANAGER_MARK],
+    IPRESSURE: [INSPECTOR_MARK, INSPECT_MANAGER_MARK, PRESSURE_MANAGER_MARK]
+}

@@ -14,3 +14,7 @@ function refreshCallBack(data) {
 $(document).on("dblclick", "#div_report tbody .feeding_row", function() {
     $("#feeding_item_modal").modal();
 });
+
+$("#feeding_report_edit_btn").click(function() {
+    $("#feeding_report_modal").modal();
+});

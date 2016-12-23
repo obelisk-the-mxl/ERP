@@ -46,11 +46,12 @@
     </div>
 </div>
 
-<div class="modal fade" id="processing_modal" modal-size-width="0.6">
+<div class="modal fade" id="processing_modal" modal-size-width="0.8">
     <div class="modal-header">
         <h2>工序检验</h2>
     </div>
     <div class="modal-body">
+        {% include "quality/forms/items/inspect_item_form.html" %}
         {% include "quality/forms/items/processing_form.html" %}
     </div>
       <div class="modal-footer">

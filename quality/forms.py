@@ -2,9 +2,26 @@
 # coding=utf-8
 
 from django import forms
-
+from const import INSPECT_CATEGORY_CHOICE
 from quality.models import InspectItem, MaterielInspectItem, InspectReport, MaterielReport, \
-        ProcessInspectItem, FeedingReport, FeedingInspectItem
+        ProcessInspectItem, FeedingReport, FeedingInspectItem, BarrelReport, BarrelInspectItem, \
+        InspectItemConst, AssembleReport, AssembleInspectItem, PressureReport
+
+class InspectCategoryForm(forms.Form):
+    categories = forms.ChoiceField(label=u"检验类别", widget=forms.Select(attrs={"class": "form-control input"}))
+
+    def __init__(self, *args, **kwargs):
+        super(InspectCategoryForm, self).__init__(*args, **kwargs)
+        self.fields["categories"].choices = INSPECT_CATEGORY_CHOICE
+
+class InspectItemConstForm(forms.ModelForm):
+    class Meta:
+        model = InspectItemConst
+        exclude = {"id", "index", "category"}
+        widgets = {
+            "check_item": forms.TextInput(attrs={"class": "input-medium"}),
+            "stipulate": forms.TextInput(attrs={"class": "input-medium"}),
+        }
 
 class InspectReportForm(forms.ModelForm):
     class Meta:
@@ -94,3 +111,46 @@ class FeedingInspectItemForm(forms.ModelForm):
             "texture_mark": forms.TextInput({"class": "input-medium"}),
             "amount": forms.TextInput({"class": "input-medium"}),
         }
+
+class BarrelReportForm(forms.ModelForm):
+    class Meta:
+        model = BarrelReport
+        exclude = {"id", "sub_materiel"}
+        widgets = {
+            "container_type": forms.TextInput({"class": "input-medium"})
+        }
+
+class BarrelInspectItemForm(forms.ModelForm):
+    class Meta:
+        model = BarrelInspectItem
+        include = {"real"}
+        widgets = {
+            "real": forms.TextInput({"class": "input-medium"})
+        }
+
+class AssembleReportForm(forms.ModelForm):
+    class Meta:
+        model = AssembleReport
+        include = {"container_type"}
+        widgets = {
+            "container_type": forms.TextInput({"class": "input-medium"})
+        }
+
+class AssembleInspectItemForm(forms.ModelForm):
+    class Meta:
+        model = AssembleReport
+        include = {"real"}
+        widgets = {
+            "real": forms.TextInput({"class": "input-medium"})
+        }
+
+class PressureReportForm(forms.ModelForm):
+    class Meta:
+        model = PressureReport
+        exclude = {"id", "base"}
+        widgets = {
+            "product_no": forms.TextInput({"class": "input-medium"}),
+            "position": forms.TextInput({"class": "input-medium"}),
+            "techcard_no": forms.TextInput({"class": "input-medium"})
+        }
+

@@ -1,0 +1,37 @@
+{% extends "quality/base/none_nav_base.html" %}
+
+{% block title%}
+<h1>检验项目录入</h1>
+{% endblock %}
+
+{% block sub_ref %}
+<a href="#" class="current">检验项目录入</a>
+{% endblock %}
+
+{% block inner_content %}
+<form class="form-search">
+    检验类别：
+    {{ category_form.categories }}
+    <span class="btn" id="order_search">选择</span>
+    <span id="new_const"  class="btn btn-success" style="float:right">新增</span>
+</form>
+<br/>
+<div id="div_category" id_work_order="{{category}}">
+    {% include "quality/widgets/const_table.html" %}
+<br/>
+</div>
+<div class="modal fade" id="const_modal" modal-size-width="0.8">
+    <div class="modal-header">
+        <h2>检验项目录入</h2>
+    </div>
+    <div class="modal-body">
+        {% include "quality/widgets/const_form.html" %}
+    </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal" id="cancel_item_change">关闭</button>
+        <button type="button" class="btn btn-primary" data-dismiss="modal" id="save_item_form">保存</button>
+      </div>
+</div>
+<script type='text/javascript' src="{{ STATIC_URL  }}jquery/jquery.form.js"></script>
+<script type='text/javascript' src="{{ STATIC_URL  }}js/quality/constInput.js"></script>
+{% endblock %}
