@@ -20,7 +20,7 @@ from quality.models import  InspectReport, MaterielReport, UnPassBill, UnQuality
 from production.models import SubMateriel, ProcessDetail
 from const import IMATERIEL, IPROCESS, IFEEDING, IBARREL, IASSEMBLE, IPRESSURE, IFACADE, \
         FINISHED, APPLYCARD_END, REFUNDSTATUS_CHOICES_END, BARREL_INSPECT_ITEMS, \
-        INSPECT_MARK, MATERIEL_MANAGER_MARK
+        INSPECT_MARK, MATERIEL_MANAGER_MARK, UNPASS_TYPE, UnQuality, Repair, Scrap
 from quality.forms import InspectReportForm, InspectItemForm, MaterielReportForm, MaterielItemForm, \
         FeedingReportForm, FeedingInspectItemForm, BarrelReportForm, BarrelInspectItemForm, \
         InspectItemConstForm, AssembleReportForm, AssembleInspectItemForm
@@ -334,7 +334,7 @@ def updateProcessingItem(request, item_id, inspect_item_form):
 
 UnPass_DICT = {
     "repair": RepairBill,
-    "unqality": UnQualityGoodsBill,
+    "unquality": UnQualityGoodsBill,
     "scrap": ScrapBill
 }
 
@@ -350,22 +350,29 @@ def addUnPassBill(request, process_detail_ids, bill_type):
     if bill_model is not None:
         for pid in process_detail_ids:
             try:
-                process_detail = ProcessDetail.objects.get(id=pid)
-                materiel = Materiel.objects.get(id=process_detail.sub_materiel_belong.materiel_belong)
-                bill = bill_model.get_or_create(process_detail=process_detail)
+                process_detail = ProcessDetail.objects.get(id=pid).select_related("processname")
+                materiel = Materiel.objects.get(id=process_detail.sub_materiel_belong.materiel_belong) \
+                        .select_related("order")
+                bill = bill_model.objects.create(process_detail=process_detail)
                 bill.texture= materiel.material
                 bill.weight=materiel.total_weight
                 bill.schematic_index=materiel.schematic_index
                 bill.processname=process_detail.processname.name
                 bill.name=materiel.name
                 bill.total_count += 1
-                if bill_type == "repair":
-                    bill.repair_count += 1
-                elif bill_type == "unqality":
-                    bill.unquality_count =+ 1
-                elif bill_type == "scrap":
-                    bill.scrap_count += 1
+                #if bill_type == "repair":
+                #    bill.repair_count += 1
+                #elif bill_type == "unquality":
+                #    bill.unquality_count =+ 1
+                #elif bill_type == "scrap":
+                #    bill.scrap_count += 1
                 bill.save()
+                counter = UnpassCounter.objects.get_or_create(
+                    work_order=materiel.order,
+                    unpass_type=bill_type
+                )
+                counter.cnt = counter.cnt + 1
+                counter.save()
                 
                 process_inspect_item = process_detail.processinspectitem
                 process_inspect_item.add_to_unpass = True
@@ -613,7 +620,7 @@ def updateFeedingItem(request, item_id, inspect_item_form, feeding_item_form):
         inspect_item_form = InspectItemForm(deserialize_form(inspect_item_form), \
                                            instance=InspectItem.objects.get(id=item_id))
         feeding_item_form = FeedingInspectItemForm(deserialize_form(feeding_item_form),
-                                                  instance=FeedingInspectItem.object.get(id=item_id))
+                                                  instance=FeedingInspectItem.object.get(base_item__id=item_id))
         if inspect_item_form.is_valid() and feeding_item_form.is_valid():
             checkstatus = inspect_item_form.cleaned_data["checkstatus"]
             checkuser = request.user.id
@@ -784,7 +791,7 @@ def updateBarrelItem(request, item_id, inspect_item_form, barrel_item_form):
         inspect_item_form = InspectItemForm(deserialize_form(inspect_item_form), \
                                            instance=InspectItem.objects.get(id=item_id))
         barrel_item_form = BarrelInspectItemForm(deserialize_form(barrel_item_form), \
-                                                instance=BarrelInspectItem.objects.get(id=item_id))
+                                                instance=BarrelInspectItem.objects.get(base_item__id=item_id))
         if inspect_item_form.is_valid() and barrel_item_form.is_valid():
             checkstatus = inspect_item_form.cleaned_data["checkstatus"]
             checkuser = request.user.id
@@ -887,7 +894,7 @@ def updateBarrelItem(request, item_id, inspect_item_form, assemble_item_form):
         inspect_item_form = InspectItemForm(deserialize_form(inspect_item_form), \
                                            instance=InspectItem.objects.get(id=item_id))
         barrel_item_form = BarrelInspectItemForm(deserialize_form(barrel_item_form), \
-                                                instance=AssembleInspectItem.objects.get(id=item_id))
+                                                instance=AssembleInspectItem.objects.get(base_item__id=item_id))
         if inspect_item_form.is_valid() and barrel_item_form.is_valid():
             checkstatus = inspect_item_form.cleaned_data["checkstatus"]
             checkuser = request.user.id
@@ -914,6 +921,7 @@ def createPressureItems(report, category):
             item=item
         )
 
+@dajaxice_register
 def finishAssembleReport(request, sub_work_order_id):
     cate = "IASSEMBLE"
     category = inspect_dict.get(cate)
@@ -929,5 +937,304 @@ def finishAssembleReport(request, sub_work_order_id):
     except:
         ret = 2
     return {"ret": ret}
+
+
+@dajaxice_register
+def getPressureReport(request, sub_work_order_id):
+    report = PressureReport.objects.get(sub_work_order__id=sub_work_order_id).select_related("pressurereportvalue")
+    items = report.pressurereportitem_set().all.select_related("pressurereportitem")
+    for item in items:
+        if item.has_stipulate:
+            setattr(report, item.item.attr_name + "_stipulate", item.item.stipulate_value)
+        setattr(report, item.item.attr_name, item.value)
+    context = {
+        "report": report
+    }
+    return render_to_string("quality/widgets/report/pressure_report.html")
+
+
+@dajaxice_register
+def getPressureReportForm(request, sub_work_order_id):
+    form = PressureReportForm(instance=PressureReport.objects.get(sub_work_order__id=sub_work_order_id))
+    return render_to_string("quality/forms/reports/pressure_report_form.html")
+
+@dajaxice_register
+def getPressureReportValueForm(request, sub_work_order_id):
+    form = PressureReportValueForm()
+    report = PressureReport.objects.get(sub_work_order__id=sub_work_order_id).select_related("pressurereportvalue")
+    items = report.pressurereportitem_set.all().select_related("pressurereportitem")
+    for item in items:
+        if item.has_stipulate:
+            setattr(form, item.item.attr_name + "_stipulate", item.item.stipulate_value)
+        setattr(form, item.item.attr_name, item.value)
+    return render_to_string("quality/forms/items/pressure_item_form.html")
+
+@dajaxice_register
+def updatePressureReport(request, sub_work_order_id, inspect_report_form, pressure_report_form):
+    """
+    author:mxl
+    summary:
+    update assemble inspect report
+    """
+    try:
+        inspect_report_form = InspectReportForm(deserialize_form(inspect_item_form), \
+                                               instance=InspectReport.objects.get(base__work_order__id=id_work_order))
+        assemble_report_form = PressureReportForm(deserialize_form(barrel_report_form), \
+                                             instance=PressureReport.objects.get(sub_work_order__id=sub_work_order_id))
+        if inspect_report_form.is_valid() and pressure_report_form.is_valid():
+            inspect_report_obj = inspect_report_form.save(commit=False)
+            inspect_report.obj.checkddate = datetime.datetime.now()
+            inspect_report_obj.save()
+            pressure_report_form.save()
+            
+            ret = {"StatusCode": 0}
+        else:
+            ret = {"StatusCode": 1}
+    except:
+        ret = {"StatusCode": 2}
+    return ret
+
+@dajaxice_register
+def updatePressureReportValueItem(request, item_id, sub_work_order_id, pressure_report_value_form):
+    try:
+        form = PressureReportValueForm(deserialize_form(pressure_report_value_form),
+                                      instance=pressurereportvalue.objects.get(id=item_id))
+        report = PressureReport.objects.get(sub_work_order__id=sub_work_order_id).select_related("pressurereportvalue")
+        items = report.pressurereportitem_set
+        if form.is_valid():
+            for field in form.fields.keys():
+                item = items.get(attr_name=field)
+                v =form.cleaned_data.get(field)
+                setattr(item, field, v)
+                if field.endswith("_stipulate"):
+                    pos = field.rfind("_stipulate")
+                    sti_name = field[:pos]
+                    stipulate_v = form.cleaned_data.get(sti_name)
+                item.save()
+            ret = 0
+        else:
+            ret = 1
+    except:
+        ret = 2
+    return {"ret": ret}
+
+@dajaxice_register
+def setPressureInspectorMark(request, sub_work_order_id):
+    user = request.user
+    report = InspectReport.objects.get(pressurereport__sub_work_order__id=sub_work_order_id)
+    mark = InspectReportMark.objects.get(report=report, title=INSPECTOR_MARK)
+    mark.marker = user
+    mark.markdate = datetime.datetime.now()
+    mark.save()
+
+@dajaxice_register
+def setPressureInspectManaerMark(request, sub_work_order_id):
+    user = request.user
+    report = InspectReport.objects.get(pressurereport__sub_work_order__id=sub_work_order_id)
+    mark = InspectReportMark.objects.get(report=report, title=INSPECT_MANAGER_MARK)
+    mark.marker = user
+    mark.markdate = datetime.datetime.now()
+    mark.save()
+
+@dajaxice_register
+def setPressureManageMark(reques, sub_work_order_id):
+    user = request.user
+    report = InspectReport.objects.get(pressurereport__sub_work_order__id=sub_work_order_id)
+    mark = InspectReportMark.objects.get(report=report, title=PRESSURE_MANAGER_MARK)
+    mark.marker = user
+    mark.markdate = datetime.datetime.now()
+    mark.save()
+
+
+def createFacadeItems(report, category):
+    """
+    the callback of create facade items
+    when pressure inspect is finished
+    """
+    const_items = InspectItemConst.objects.filter(category=category).order_by("index")
+    for index, const_item in enumerate(const_items):
+        inspect_item = InspectItem.objects.create(
+            report=report,
+            index=index
+        )
+        facade_item = FacadeInspectItem.objects.create(
+            base_item=inspect_item,
+            check_item=const_item.check_item,
+            stipulate=stipulate
+        )
+
+@dajaxice_register
+def finishPressureReport(request, sub_work_order_id):
+    cate = "IPRESSURE"
+    category = inspect_dict.get(cate)
+    try:
+        report = PressureReport.objects.get(sub_work_order__id=sub_work_order_id)
+        if check_report_canbe_finish(report):
+            report.is_finished = True
+            report.save()
+            afterFinish(sub_work_order_id, category, create_item_func=createFacadeItems)
+            ret = 0
+        else:
+            ret = 1
+    except:
+        ret = 2
+    return {"ret": ret}
+
+@dajaxice_register
+def getFacadeReport(request, sub_work_order_id):
+    report = FacadeReport.objects.get(sub_work_order__id=sub_work_order_id)
+    items = report.FacadeInspectItem_set.all()
+    context = {
+        "report": report,
+        "items": items
+    }
+    return render_to_string("quality/Facade.html")
+
+@dajaxice_register
+def getFacadeReportForm(request, sub_work_order_id):
+    report_form = FacadeReportForm(
+        instance=FacadeReport.objects.get(sub_work_order__id=sub_work_order_id)
+    )
+    context = {
+        "report_form": report_form
+    }
+    return render_to_string("quality/forms/reports/facade_report_form.html", context)
+
+@dajaxice_register
+def getFacadeInspectItemForm(request, iid):
+    item_form = FacadeInspectItemForm(
+        instance=FacadeInspectItem.objects.get(id=iid)
+    )
+    context = {
+        "item_form": item_form
+    }
+    return render_to_string("quality/forms/items/facade_item_form.html", context)
+
+@dajaxice_register
+def updateFacadeReport(request, sub_work_order_id, inspect_report_form, facade_report_form):
+    """
+    author:mxl
+    summary:
+    update assemble inspect report
+    """
+    try:
+        inspect_report_form = InspectReportForm(deserialize_form(inspect_item_form), \
+                                               instance=InspectReport.objects.get(base__work_order__id=id_work_order))
+        assemble_report_form = FacadeReportForm(deserialize_form(barrel_report_form), \
+                                             instance=FacadeReport.objects.get(sub_work_order__id=sub_work_order_id))
+        if inspect_report_form.is_valid() and facade_report_form.is_valid():
+            inspect_report_obj = inspect_report_form.save(commit=False)
+            inspect_report.obj.checkddate = datetime.datetime.now()
+            inspect_report_obj.save()
+            facade_report_form.save()
+            
+            ret = {"StatusCode": 0}
+        else:
+            ret = {"StatusCode": 1}
+    except:
+        ret = {"StatusCode": 2}
+    return ret
+
+@dajaxice_register
+def updatePressureReportValueItem(request, item_id, inspect_item_form, facade_item_form):
+    try:
+        inspect_item_form = InspectItemForm(deserialize_form(inspect_item_form),
+                                           instance=InspectItem.objects.get(id=item_id))
+        facade_item_form = FacadeInspectItemForm(deserialize_form(pressure_report_value_form),
+                                    instance=FacadeInspectItem.objects.get(base_item__id=item_id))
+        if inspect_item_form.is_valid() and facade_item_form.is_valid():
+            checkstatus = inspect_item_form.cleaned_data["checkstatus"]
+            checkuser = request.user.id
+            checkdate = datetime.datetime.now()
+            extra = inspect_item_form.cleaned_data["extra"]
+
+            iface = InspectIface()
+            iface.update_item(item_id, checkstatus, checkuser, checkdate, extra)
+            facade_item_form.save()
+            ret = 0
+        else:
+            ret = 1
+    except:
+        ret = 2
+    return {"ret": ret}
+
+
+@dajaxice_register
+def setFacadeInspectManagerMark(request, sub_work_order_id):
+    user = request.user
+    report = InspectReport.objects.get(facadereport__sub_work_order__id=sub_work_order_id)
+    mark = InspectReportMark.objects.get(report=report, title=INSPECT_MANAGER_MARK)
+    mark.marker = user
+    mark.markdate = datetime.datetime.now()
+    mark.save()
+
+
+def afterFinishFacade(sub_work_order_id):
+    final_inspect = FinalInspect(sub_work_order__id=sub_work_order_id)
+    final_inspect.save()
+
+@dajaxice_register
+def finishFacadeReport(request, sub_work_order_id):
+    cate = "IFACADE"
+    category = inspect_dict.get(cate)
+    try:
+        report = FacadeReport.objects.get(sub_work_order__id=sub_work_order_id)
+        if check_report_canbe_finish(report):
+            report.is_finished = True
+            report.save()
+            afterFinishFacade(sub_work_order_id)
+            ret = 0
+        else:
+            ret = 1
+    except:
+        ret = 2
+    return {"ret": ret}
+
+
+@dajaxice_register
+def getFinalInspects(request):
+    retports = FinalInspect.objects.exclude(checkstatus=FINISHED)
+    context = {
+        "reports": reports
+    }
+    return render_to_string("quality/Final.html", context)
+
+@dajaxice_register
+def updateFinishInspect(request, sub_work_order_id, status):
+    try:
+        final_report = FinalInspect.objects.get(sub_work_order__id=sub_work_order_id)
+        final_report.checkuser = request.user
+        final_report.checkstatus=status
+        final_report.checkdate = datetime.datetime.now()
+        final_report.save()
+        ret = 0
+    except:
+        ret = 1
+    return {"ret": ret}
+
+
+UNPASS_MODEL_DICT = {
+    UnQuality: UnQualityGoodsBill,
+    Repair: RepairBill,
+    Scrap: ScrapBill
+}
+
+@dajaxice_register
+def getUnPassList(request, work_order_id):
+    for unpass_type, bill_model in UNPASS_MODEL_DICT.iteritems():
+        bills = bill_model.objects.filter(
+            process_detail__sub_materiel_belong__sub_order__order__id=work_order_id)
+        counter = UnpassCounter.objects.get(
+            work_order__id=work_order_id,
+            unpass_type=unpass_type
+        )
+        for bill in bills:
+            bill.signature_sheets = SignatureSheet.objects.filter(bill=bill)
+        bill_dict[unpass_type] = bills
+    context = {
+        "bill_dict": bill_dict,
+        "counter": counter
+    }
+    return render_to_string("quality/reports/%s_report.html" % unpass_type, context)
 
 

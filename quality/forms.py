@@ -5,7 +5,8 @@ from django import forms
 from const import INSPECT_CATEGORY_CHOICE
 from quality.models import InspectItem, MaterielInspectItem, InspectReport, MaterielReport, \
         ProcessInspectItem, FeedingReport, FeedingInspectItem, BarrelReport, BarrelInspectItem, \
-        InspectItemConst, AssembleReport, AssembleInspectItem, PressureReport
+        InspectItemConst, AssembleReport, AssembleInspectItem, PressureReport, \
+        FacadeReport, FacadeInspectItem, FinalInspect
 
 class InspectCategoryForm(forms.Form):
     categories = forms.ChoiceField(label=u"检验类别", widget=forms.Select(attrs={"class": "form-control input"}))
@@ -154,3 +155,57 @@ class PressureReportForm(forms.ModelForm):
             "techcard_no": forms.TextInput({"class": "input-medium"})
         }
 
+class PressureReportValueForm(forms.Form):
+    gauge_1_index = forms.CharField(label=u"压力表1编号", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+    gauge_1_date = forms.CharField(label=u"压力表1检定日期", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+    gauge_1_range = forms.CharField(label=u"压力表1量程", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+    gauge_1_index = forms.CharField(label=u"压力表1直径", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+    gauge_1_accuracy_level = forms.CharField(label=u"压力表1精度等级", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+    gauge_1_value = forms.CharField(label=u"压力表1读数", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+    gauge_2_index = forms.CharField(label=u"压力表2编号", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+    gauge_2_date = forms.CharField(label=u"压力表2检定日期", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+    gauge_2_range = forms.CharField(label=u"压力表2量程", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+    gauge_2_index = forms.CharField(label=u"压力表2直径", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+    gauge_2_accuracy_level = forms.CharField(label=u"压力表2精度等级", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+    gauge_2_value = forms.CharField(label=u"压力表2读数", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+
+    media = forms.CharField(label=u"试压介质", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+    media_temperature_5_stipulate = forms.CharField(label=u"要求介质温度(5)", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+    media_temperature_15_stipulate = forms.CharField(label=u"要求介质温度(15)", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+    meida_temerature_5 = forms.CharField(label=u"现场介质温度(5)", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+    media_temperature_15 = forms.CharField(label=u"现场介质温度(15)", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+    env_temperature_5_stipulate = forms.CharField(label=u"要求环境温度(5)", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+    env_temperature_15_stipulate = forms.CharField(label=u"要求环境温度(15)", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+    env_temperature_5 = forms.CharField(label=u"实际环境温度(5)", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+    env_temperature_15 = forms.CharField(label=u"实际环境温度(15)", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+    lv = forms.CharField(label=u"氯离子含量(25)", required=True, widget=forms.TextInput(attrs={'class':'form-control span2'}))
+
+
+
+class FacadeReportForm(forms.ModelForm):
+    class Meta:
+        model = FacadeReport
+        exclude = {"id", "base"}
+        widgets = {
+            "product_no": forms.TextInput({"class": "input-medium"}),
+            "product_name": forms.TextInput({"class": "input-medium"}),
+        }
+        
+
+
+class FacadeInspectItemForm(forms.ModelForm):
+    class Meta:
+        model = FacadeInspectItem
+        include = {"real"}
+        widgets = {
+            "real": forms.TextInput({"class": "input-medium"}),
+        }
+
+class FinalInspectForm(forms.ModelForm):
+    class Meta:
+        model = FacadeInspectItem
+        include = {"status"}
+        widgets = {
+            "status": forms.Select({"class": "input-medium"}),
+        }
+    

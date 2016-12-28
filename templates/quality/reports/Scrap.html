@@ -1,23 +1,17 @@
 {% extends "quality/base/none_nav_base.html" %}
 
 {% block title%}
-<h1>压力试验检验</h1>
+<h1>报废品管理</h1>
 {% endblock %}
 
 {% block sub_ref %}
-<a href="#" class="current">压力试验检验</a>
+<a href="/quality/unpass/" class="tip-bottom">报废品管理</a>
+<a href="#" class="current">次品管理</a>
 {% endblock %}
 
 {% block inner_content %}
-<form class="form-search">
-    工作令：
-    <span id="order_span">{{ form.work_order }}</span>
-    <span id="sub_order_span">{{ sub_order_form.sub_work_order }}</span>
-    <span class="btn" id="order_search">检索</span>
-</form>
-<br/>
 <div id="div_report" id_work_order="{{work_order.id}}">
-{% include "quality/widgets/report/pressure_report.html" %}
+{% include "quality/widgets/report/scrap_report.html" %}
 
 <div class="span2" style="float:left">
     <span class="btn btn-primary">保存报告单</span>
@@ -27,5 +21,5 @@
 </div>
 </div>
 <script type='text/javascript' src="{{ STATIC_URL  }}jquery/jquery.form.js"></script>
-<script type='text/javascript' src="{{STATIC_URL}}js/quality/pressureItems.js"></script>
+<script type='text/javascript' src="{{STATIC_URL}}js/quality/unqualityItems.js"></script>
 {% endblock %}

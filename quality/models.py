@@ -7,7 +7,8 @@ from django.db import models
 from django.contrib.auth.models import User
 
 from const import UnCheck, QA_STATUS, DILIVER_STATUS, UNDILIVER, \
-        REVIEW_COMMENTS_CHOICES, QUALITY_MARK_DICT, INSPECT_CATEGORY_CHOICE
+        REVIEW_COMMENTS_CHOICES, QUALITY_MARK_DICT, INSPECT_CATEGORY_CHOICE, \
+        UNPASS_TYPE
 from const.models import WorkOrder, SubWorkOrder
 from production.models import ProcessDetail, SubMateriel
 
@@ -223,6 +224,7 @@ class AssembleInspectItem(models.Model):
 
 class PressureReport(models.Model):
     base = models.OneToOneField(InspectReport, verbose_name=u'报告项Base')
+    sub_work_order = models.OneToOneField(SubWorkOrder, verbose_name=u"子工作令")
     product_no = models.CharField(max_length=20, verbose_name=u"产品编号")
     position = models.CharField(max_length=50, verbose_name=u"试压部位")
     techcard_no = models.CharField(max_length=50, verbose_name=u"工艺卡编号")
@@ -261,6 +263,7 @@ class PressureReportValue(models.Model):
 
 class FacadeReport(models.Model):
     base = models.OneToOneField(InspectReport, verbose_name=u'报告单Base')
+    sub_work_order = models.OneToOneField(SubWorkOrder, verbose_name=u"子工作令")
     product_name = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"产品名称")
     product_no = models.CharField(max_length=20, verbose_name=u"产品编号")
     
@@ -285,9 +288,10 @@ class FacadeInspectItem(models.Model):
         return u"%s" % self.base_item
 
 class FinalInspect(models.Model):
-    work_order = models.ForeignKey(WorkOrder, verbose_name=u"所属工作令")
-    status = models.IntegerField(default=0, verbose_name=u"检验状态")
-    review = models.IntegerField(choices=REVIEW_COMMENTS_CHOICES, verbose_name=u"审核")
+    sub_work_order = models.ForeignKey(SubWorkOrder, verbose_name=u"所属子工作令")
+    checkuser = models.ForeignKey(User, blank=True, null=True, verbose_name=u'检查员')
+    checkdate = models.DateField(blank=True, null=True, verbose_name=u'审核日期')
+    checkstatus = models.IntegerField(choices=QA_STATUS, blank=True, null=True, verbose_name=u'检验状态')
 
     class Meta:
         verbose_name=u"最终审核"
@@ -298,16 +302,16 @@ class FinalInspect(models.Model):
 
 class UnPassBill(models.Model):
     id = models.CharField(max_length=40, default=uuid4, primary_key=True)
-    #work_order = models.ForeignKey(WorkOrder, verbose_name=u"所属工作令")
     process_detail = models.ForeignKey(ProcessDetail, verbose_name=u"所属工序")
+    #processname = models.CharField(max_length = 50, blank=True, null=True, verbose_name = u"工序")
     texture = models.CharField(max_length=100, null=True, blank=True, verbose_name=u"材质")
     weight = models.FloatField(blank=True, null=True, verbose_name=u"单重")
     schematic_index = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"图号")
-    processname = models.CharField(max_length = 50, blank=True, null=True, verbose_name = u"工序")
     total_count = models.IntegerField(blank=True, null=True, verbose_name=u"交检数")
     name = models.CharField(max_length=100, null=True, blank=True, verbose_name=u"名称")
-    operator = models.ForeignKey(User, verbose_name=u"操作者")
     reason = models.TextField(max_length=1000, null=True, blank=True, verbose_name=u"原因")
+    operator = models.ForeignKey(User, verbose_name=u"操作者", related_name="operator")
+    inspect_manager = models.ForeignKey(User, verbose_name=u"检查站长", related_name=u"inspect_manager")
 
     class Meta:
         verbose_name=u"不合格单"
@@ -315,6 +319,18 @@ class UnPassBill(models.Model):
 
     def __unicode__(self):
         return u"%s-%s" % (self.work_order, self.no)
+
+class UnpassCounter(models.Model):
+    work_order = models.ForeignKey(WorkOrder,blank=False, null=False, verbose_name=u'检验报告')
+    cnt = models.IntegerField(default=0, verbose_name=u"计数")
+    unpass_type = models.CharField(max_length=100, choices=UNPASS_TYPE, verbose_name=u"不合格类型")
+
+    class Meta:
+        verbose_name=u"不合格计数"
+        verbose_name_plural=u"不合格计数"
+
+    def __unicode__(self):
+        return "%s %s" % (self.work_order, self.unpass_type)
 
 class SignatureSheet(models.Model):
     bill = models.ForeignKey(UnPassBill, verbose_name=u"不合格单")
@@ -331,7 +347,6 @@ class SignatureSheet(models.Model):
         return u"%s:%s" % (self.bill, self.text)
 
 class UnQualityGoodsBill(UnPassBill):
-    unquality_count = models.IntegerField(blank=True, null=True, verbose_name=u"不合格数")
     no = models.CharField(max_length=50, blank=True, null=True, verbose_name=u"本单号")
 
     class Meta:
@@ -342,7 +357,6 @@ class UnQualityGoodsBill(UnPassBill):
         return u"%s-%s" % (self.work_order, self.no)
 
 class RepairBill(UnPassBill):
-    repair_count = models.IntegerField(blank=True, null=True, verbose_name=u"返修数")
     after_repair_check = models.TextField(max_length=200, null=True, blank=True, verbose_name=u"修后检查")
 
     class Meta:
@@ -353,7 +367,6 @@ class RepairBill(UnPassBill):
         return u"%s-%s" % (self.work_order, self.no)
 
 class ScrapBill(UnPassBill):
-    scrap_count = models.IntegerField(blank=True, null=True, verbose_name=u"报废数")
 
     class Meta:
         verbose_name=u"报废单"

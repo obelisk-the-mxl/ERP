@@ -900,5 +900,16 @@ PRESSURE_MANAGER_MARK = u"压力试验责任师"
 
 INSPECT_MARK = {
     IFEEDING: [MATERIEL_MANAGER_MARK],
-    IPRESSURE: [INSPECTOR_MARK, INSPECT_MANAGER_MARK, PRESSURE_MANAGER_MARK]
+    IPRESSURE: [INSPECTOR_MARK, INSPECT_MANAGER_MARK, PRESSURE_MANAGER_MARK],
+    IFACADE: [INSPECT_MANAGER_MARK]
 }
+
+UnQuality = "unquality"
+Repair = "repair"
+Scrap = "scrap"
+
+UNPASS_TYPE = (
+    (UnQuality, u"不合格品"),
+    (Repair, u"返修品"),
+    (Scrap, u"报废品")
+)

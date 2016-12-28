@@ -46,4 +46,28 @@ urlpatterns=patterns(
         r'^pressure/$',
         quality_views.pressureViews,
     ),
+    url(
+        r'^facade/$',
+        quality_views.facadeViews,
+    ),
+    url(
+        r'^final/$',
+        quality_views.finalViews,
+    ),
+    url(
+        r'^unpass/$',
+        quality_views.unpassViews,
+    ),
+    url(
+        r'^unquality_report/(\w+)/$',
+        quality_views.unqualityReportViews,
+    ),
+    url(
+        r'^repair_report/(\w+)/$',
+        quality_views.repairReportViews,
+    ),
+    url(
+        r'^scrap_report/(\w+)/$',
+        quality_views.scrapReportViews,
+    ),
 )

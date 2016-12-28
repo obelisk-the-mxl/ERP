@@ -34,7 +34,7 @@ def processingViews(request):
     }
     return render(request, "quality/Processing.html", context)
 
-def processingCompleteViews(request, sub_work_order):
+def processingCompleteViews(request):
     context = {}
     return render(request, "quality/ProcessingComplete.html", context)
 
@@ -78,3 +78,41 @@ def pressureViews(request):
         "sub_order_form": sub_order_form
     }
     return render(request, "quality/Pressure.html", context)
+
+
+def facadeViews(request):
+    work_order_form = WorkOrderForm()
+    sub_order_form = SubWorkOrderForm()
+    context = {
+        "form": work_order_form,
+        "sub_order_form": sub_order_form
+    }
+    return render(request, "quality/Facade.html", context)
+    
+def finalViews(request):
+    work_order_form = WorkOrderForm()
+    sub_order_form = SubWorkOrderForm()
+    context = {
+        "form": work_order_form,
+        "sub_order_form": sub_order_form
+    }
+    return render(request, "quality/Final.html", context)
+    
+def unpassViews(request):
+    work_order_form = WorkOrderForm()
+    context = {
+        "form": work_order_form,
+    }
+    return render(request, "quality/UnPass.html", context)
+
+def unqualityReportViews(request, bill_id):
+    context = {}
+    return render(request, "quality/reports/UnQuality.html", context)
+   
+def repairReportViews(request, bill_id):
+    context = {}
+    return render(request, "quality/reports/Repair.html", context)
+
+def scrapReportViews(request, bill_id):
+    context = {}
+    return render(request, "quality/reports/Scrap.html", context)

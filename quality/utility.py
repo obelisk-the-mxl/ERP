@@ -47,25 +47,22 @@ models_dict = {
     }
 }
 
-def afterFinish(sub_work_order_id, category, create_item_func=None):
+def afterFinish(sub_work_order_id, category, create_item_func):
     cur_model_dict = models_dict.get(category)
     cur_report_model = cur_model_dict.get("report")
     next_model_dict = models_dict.get(category + 1, {})
     
     sub_work_order = SubWorkOrder.objects.get(id=sub_work_order_id).select_related("order")
 
-    cur_report_finished = False
+    cur_report_finished = True
     if category == IBARREL:
         """
         barrel report
         """
         all_report = cur_report_model.objects.filter(sub_materiel__sub_order__id=sub_work_order_id)
         not_finished = filter(lambda x: x.base.is_finished==False, all_report)
-        if not_finished:
-            cur_report_finished = True
-    else:
-        report = cur_report_model.objects.get(sub_work_order__id=sub_work_order_id)
-        cur_report_finished = report.is_finished
+        if not len(not_finished):
+            cur_report_finished = False
 
     if cur_report_finished:
         """
@@ -84,6 +81,5 @@ def afterFinish(sub_work_order_id, category, create_item_func=None):
                 base=inspect_report,
                 sub_work_order=sub_work_order
             )
-            if create_item_func:
-                create_item_func(report=report, category=category)
+            create_item_func(report=report, category=category)
 
