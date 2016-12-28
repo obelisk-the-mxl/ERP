@@ -309,7 +309,6 @@ class UnPassBill(models.Model):
     schematic_index = models.CharField(blank = True, null = True, max_length = 50, verbose_name = u"图号")
     total_count = models.IntegerField(blank=True, null=True, verbose_name=u"交检数")
     name = models.CharField(max_length=100, null=True, blank=True, verbose_name=u"名称")
-    reason = models.TextField(max_length=1000, null=True, blank=True, verbose_name=u"原因")
     operator = models.ForeignKey(User, verbose_name=u"操作者", related_name="operator")
     inspect_manager = models.ForeignKey(User, verbose_name=u"检查站长", related_name=u"inspect_manager")
 
@@ -347,33 +346,39 @@ class SignatureSheet(models.Model):
         return u"%s:%s" % (self.bill, self.text)
 
 class UnQualityGoodsBill(UnPassBill):
-    no = models.CharField(max_length=50, blank=True, null=True, verbose_name=u"本单号")
+    reason = models.TextField(max_length=1000, null=True, blank=True, verbose_name=u"不合格情况及原因")
+    inspect_marker = models.ForeignKey(User, null=True, blank=True, verbose_name=u"检验员", related_name="unquality_inspect_marker")
+    inspect_manage_marker = models.ForeignKey(User, null=True, blank=True, verbose_name=u"检查站长", related_name="unquality_inspect_manage_marker")
 
     class Meta:
         verbose_name=u"不合格品处理单"
         verbose_name_plural=u"不合格品处理单"
 
     def __unicode__(self):
-        return u"%s-%s" % (self.work_order, self.no)
+        return u"%s-%s" % (self.work_order)
 
 class RepairBill(UnPassBill):
-    after_repair_check = models.TextField(max_length=200, null=True, blank=True, verbose_name=u"修后检查")
+    reason = models.TextField(max_length=200, null=True, blank=True, verbose_name=u"退修原因")
+    inspect_marker = models.ForeignKey(User, null=True, blank=True, verbose_name=u"检验员", related_name="repair_inspect_marker")
+    inspect_manager_marker = models.ForeignKey(User, null=True, blank=True, verbose_name=u"检查站长", related_name="repair_inspect_manage_marker")
+    repair_manage_marker = models.ForeignKey(User, null=True, blank=True, verbose_name=u"承修单位负责人", related_name="inspect_manage_marker")
 
     class Meta:
         verbose_name=u"退修单"
         verbose_name_plural=u"退休单"
 
     def __unicode__(self):
-        return u"%s-%s" % (self.work_order, self.no)
+        return u"%s-%s" % (self.work_order)
 
 class ScrapBill(UnPassBill):
+    inspect_marker = models.ForeignKey(User, null=True, blank=True, verbose_name=u"检验员", related_name="scrap_inspect_marker")
 
     class Meta:
         verbose_name=u"报废单"
         verbose_name_plural=u"报废单"
 
     def __unicode__(self):
-        return u"%s-%s" % (self.work_order, self.no)
+        return u"%s-%s" % (self.work_order)
 
 class InspectItemConst(models.Model):
     category = models.IntegerField(choices=INSPECT_CATEGORY_CHOICE, blank=False, null=False, verbose_name=u'检验类别')

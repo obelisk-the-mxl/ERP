@@ -360,12 +360,7 @@ def addUnPassBill(request, process_detail_ids, bill_type):
                 bill.processname=process_detail.processname.name
                 bill.name=materiel.name
                 bill.total_count += 1
-                #if bill_type == "repair":
-                #    bill.repair_count += 1
-                #elif bill_type == "unquality":
-                #    bill.unquality_count =+ 1
-                #elif bill_type == "scrap":
-                #    bill.scrap_count += 1
+                
                 bill.save()
                 counter = UnpassCounter.objects.get_or_create(
                     work_order=materiel.order,
@@ -384,6 +379,13 @@ def addUnPassBill(request, process_detail_ids, bill_type):
                 checkuser = request.user.id
                 checkdate = datetime.datetime.now()
                 iface.update_item(process_inspect_item.base_item.id, CheckUnPass, checkuser, checkdate, {})
+
+                marks = UNPASS_MARK.get(bill_type)
+                for mark in marks:
+                    signature = SignatureSheet.objects.create(
+                        bill=biil,
+                        text=mark
+                    )
             except:
                 pass
     ret = {
@@ -1237,4 +1239,25 @@ def getUnPassList(request, work_order_id):
     }
     return render_to_string("quality/reports/%s_report.html" % unpass_type, context)
 
+@dajaxice_register
+def setUnQualityReason(request,bill_id, reason, role):
+    bill = UnPassBill.objects.get(id=bill_id).unqualitygoodsbill
+    bill.reason = reason
+    if role == 0:
+        bill.inspect_marker = request.user
+    elif role == 1:
+        bill.inspect_manage_marker = request.user
+    else:
+        ret = 1
+    ret = 0
+    bill.save()
+    return {"ret": ret}
+
+@dajaxice_register
+def setSignature(request, bill_id, text, opinion):
+    signature = SignatureSheet.objects.get(bill__id=bill_id, text=text)
+    signature.signer = request.user
+    signature.sign_date = datetime.datetime.now()
+    signature.opinion = opinion
+    signature.save()
 

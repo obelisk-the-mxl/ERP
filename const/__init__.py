@@ -913,3 +913,16 @@ UNPASS_TYPE = (
     (Repair, u"返修品"),
     (Scrap, u"报废品")
 )
+
+TECHDATA_OPINION = u"工艺科意见"
+DESIGN_OPINION = u"设计所意见"
+TECHIQUE_OPINION = u"技术负责人意见"
+CONFIRM_RESULT = u"处理结果确认"
+
+AFTER_REPAIR_CHECK = u"修后检查"
+
+UNPASS_MARK = {
+    UnQuality: [TECHDATA_OPINION, DESIGN_OPINION, TECHIQUE_OPINION, CONFIRM_RESULT],
+    Repair: [AFTER_REPAIR_CHECK],
+    Scrap: []
+}
