@@ -26,7 +26,7 @@ from forms import GroupForm, NewsCateForm
 from const import NEWS_CATEGORY_COMPANYNEWS
 
 from backend.utility import getContext
-from const.forms import AuthorTypeForm
+#from const.forms import AuthorTypeForm
 from users.models import *
 
 def titleSettingViews(request):
@@ -124,10 +124,10 @@ def controlManagementViews(request):
     role_id = request.GET.get("role_id")
     #title = Title.objects.get(id = title_id)
     role = Role.objects.get(id=role_id)
-    auth_type_form = AuthorTypeForm()
+#    auth_type_form = AuthorTypeForm()
     context = {
             "role": role,
-            "auth_type_form": auth_type_form,
+#            "auth_type_form": auth_type_form,
         }
     return render(request, "management/control_management.html", context)
 

@@ -62,7 +62,7 @@ class InspectIface(object):
             return self.__get_err_response(self.INTERNAL_SERVER_ERR, str(e))
         return resp
 
-     def mget_item_by_ids(item_ids):
+    def mget_item_by_ids(item_ids):
         try:
             if not item_ids:
                 return self.__get_err_response(self.ILLEGAL_PARAM)

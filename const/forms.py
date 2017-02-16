@@ -25,13 +25,13 @@ class WorkOrderForm(forms.Form):
         WORKORDER_CHOICES = tuple((item.id, item) for item in WorkOrder.objects.all())
         self.fields["work_order"].choices = WORKORDER_CHOICES
 
-class AuthorTypeForm(forms.Form):
-    """
-    JunHU
-    summary: store all type of author type
-    """
-    _choices = map(lambda x: (x.cate, x.name), Group.objects.all())
-    auth_type = forms.ChoiceField(choices = _choices, widget = forms.Select(attrs = {'class': 'form-control input'}))
+#class AuthorTypeForm(forms.Form):
+#    """
+#    JunHU
+#    summary: store all type of author type
+#    """
+#    _choices = map(lambda x: (x.cate, x.name), Group.objects.all())
+#    auth_type = forms.ChoiceField(choices = _choices, widget = forms.Select(attrs = {'class': 'form-control input'}))
 
 class InventoryTypeForm(forms.Form):
     """

@@ -34,7 +34,7 @@ def processingViews(request):
     }
     return render(request, "quality/Processing.html", context)
 
-def processingCompleteViews(request):
+def processingCompleteViews(request, work_order_id):
     context = {}
     return render(request, "quality/ProcessingComplete.html", context)
 
